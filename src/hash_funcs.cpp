@@ -4,7 +4,7 @@
 
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
-uint HashReturn0(const char* str){
+uint HashReturn0(const char* str, const uint mod){
 
     assert(str != NULL);
 
@@ -12,15 +12,15 @@ uint HashReturn0(const char* str){
 }
 //----------------------------------------------------------------------------------------//
 
-uint  HashFirstChar(const char* str){
+uint  HashFirstChar(const char* str, const uint mod){
 
     assert(str != NULL);
 
-    return (uint)str[0];
+    return (uint)str[0] % mod;
 }
 //----------------------------------------------------------------------------------------//
 
-uint HashCheckSum(const char* str){
+uint HashCheckSum(const char* str, const uint mod){
 
     assert(str != NULL);
 
@@ -29,11 +29,11 @@ uint HashCheckSum(const char* str){
         sum += (uint)str[i];
     }
 
-    return sum;
+    return sum % mod;
 }
 //----------------------------------------------------------------------------------------//
 
-uint HashStrLen(const char* str){
+uint HashStrLen(const char* str, const uint mod){
 
     assert(str != NULL);
 
@@ -42,11 +42,11 @@ uint HashStrLen(const char* str){
         ;
     }
 
-    return len;
+    return len % mod;
 }
 //----------------------------------------------------------------------------------------//
 
-uint HashBRol(const char* str){
+uint HashBRol(const char* str, const uint mod){
 
     assert(str != NULL);
 
@@ -58,6 +58,6 @@ uint HashBRol(const char* str){
         hash ^= str[i];
     }
 
-    return (uint)hash;
+    return (uint)hash % mod;
 }
 //----------------------------------------------------------------------------------------//

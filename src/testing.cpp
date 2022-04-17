@@ -58,3 +58,13 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
     return;
 }
 //----------------------------------------------------------------------------------------//
+
+void GetData(const char* data_file_name){
+
+    assert(data_file_name != NULL);
+
+    FILE* data_file = fopen(data_file_name, "r");
+
+    storage* = TextStorageInit()
+}
+//----------------------------------------------------------------------------------------//

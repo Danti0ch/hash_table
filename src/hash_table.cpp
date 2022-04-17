@@ -1,5 +1,4 @@
 #include "hash_table.h"
-//#include "hash_funcs.h"
 #include <stdlib.h>
 
 static list* LST_POISON = (list*)123;
@@ -11,19 +10,22 @@ static list* LST_POISON = (list*)123;
 //  come up with new stuff???
 
 //                  I PART                                      
-// TODO: сделать дамп гистограм через matplotlib скрипт(ну то есть тестирование и создание картинки)
+// TODO: запустить на входных данных
+// TODO: запилить функцию сохранения баров в html
 // TODO: readme?                                            
-// TODO: запилить оставщиеся хэш функции            
-
+// TODO:  запилить crc32
+// TODO: интерфейс
 //                  II PART
 // TODO: запустить профайлер                            
 // TODO: оптимизировать функции, которые больше всех жрут
 
 // TODO: желательно поменториться у кого-нибудь
- 
+// TODO: (опционально) улучшить изображение гистограмм
+// TODO: усилить модуль логирования
+
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
-Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str)){
+Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str, const uint mod)){
 
     assert(hash_func != NULL);
 
@@ -55,7 +57,7 @@ uint HTableFind(Htabl* obj, list_T str){
     assert(obj != NULL);
     assert(str != NULL);
 
-    uint list_ind = obj->hash_func(str);
+    uint list_ind = obj->hash_func(str, obj->size);
 
     if(list_ind >= obj->size || obj->data[list_ind] == LST_POISON) return 0;
 
@@ -71,7 +73,7 @@ void HTableInsert(Htabl* obj, list_T str){
 
     assert(obj != NULL);
 
-    uint list_ind = obj->hash_func(str);
+    uint list_ind = obj->hash_func(str, obj->size);
 
     assert(list_ind < obj->size);
 

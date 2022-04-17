@@ -6,17 +6,17 @@ typedef unsigned int uint;
 const uint MAX_STR_LEN  = 10000;
 const uint BITS_IN_BYTE = 8;
 
-uint HashReturn0(const char* str);
-uint HashFirstChar(const char* str);
-uint HashCheckSum(const char* str);
-uint HashStrLen(const char* str);
-uint HashBRol(const char* str);
+uint HashReturn0(const char* str, const uint mod);
+uint HashFirstChar(const char* str, const uint mod);
+uint HashCheckSum(const char* str, const uint mod);
+uint HashStrLen(const char* str, const uint mod);
+uint HashBRol(const char* str, const uint mod);
 
 // TODO: rename
 // TODO: добавить поле под статистику
 struct hash_func_meta{
 
-    uint (*p_func)(const char* str);
+    uint (*p_func)(const char* str, const uint mod);
     const char* name;
     const char* descr;
     // uint statistic;
