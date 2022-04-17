@@ -10,14 +10,17 @@ static list* LST_POISON = (list*)123;
 //  erase
 //  come up with new stuff???
 
-//                  I PART
+//                  I PART                                      
 // TODO: сделать дамп гистограм через matplotlib скрипт(ну то есть тестирование и создание картинки)
-// TODO: readme?
-// TODO: запилить оставщиеся хэш функции
-
+// TODO: readme?                                            
+// TODO: запилить оставщиеся хэш функции            
 
 //                  II PART
-// TODO: запустить 
+// TODO: запустить профайлер                            
+// TODO: оптимизировать функции, которые больше всех жрут
+
+// TODO: желательно поменториться у кого-нибудь
+ 
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
 Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str)){
@@ -47,7 +50,7 @@ Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str)){
 //----------------------------------------------------------------------------------------//
 
 // TODO: fox char* -> cosnt char*
-uint HTableFind(Htabl* obj, char* str){
+uint HTableFind(Htabl* obj, list_T str){
 
     assert(obj != NULL);
     assert(str != NULL);
@@ -64,7 +67,7 @@ uint HTableFind(Htabl* obj, char* str){
 }
 //----------------------------------------------------------------------------------------//
 
-void HTableInsert(Htabl* obj, char* str){
+void HTableInsert(Htabl* obj, list_T str){
 
     assert(obj != NULL);
 
@@ -96,5 +99,15 @@ void HTableRemove(Htabl* obj){
     free(obj);
 
     return;
+}
+//----------------------------------------------------------------------------------------//
+
+uint IsListEmpty(const Htabl* obj, const uint n_list){
+
+    assert(obj != NULL);
+
+    if(obj->data[n_list] == LST_POISON) return 1;
+
+    return 0;
 }
 //----------------------------------------------------------------------------------------//

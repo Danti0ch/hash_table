@@ -14,14 +14,14 @@ enum HT_ERR_CODE{
 
     OK,
     ALLOC_MEM,
-
 };
 
 typedef HashTable Htabl;
 
 Htabl*  HTableInit(const size_t size, uint (*hash_func)(const char* str));
-uint    HTableFind(Htabl* obj, char* str);
-void    HTableInsert(Htabl* obj, char* str);
+uint    HTableFind(Htabl* obj, list_T str);
+void    HTableInsert(Htabl* obj, list_T str);
 void    HTableRemove(Htabl* obj);
+uint    IsListEmpty(const Htabl* obj, const uint n_list);
 
 #endif //HASH_TABLE_H
