@@ -2,7 +2,24 @@
 #include <stdlib.h>
 #include "testing.h"
 #include "text_storage.h"
+#include "hash_funcs.h"
 #include <string.h>
+
+void UseHtable(const text_storage* text, const text_storage* unique_text, const size_t hash_size){
+    
+    Htabl* htable = HTableInit(hash_size, HashCRC32);
+    assert(htable != NULL);
+
+    for(uint n_elem = 0; n_elem < unique_text->n_words; n_elem++){
+        HTableInsert(htable, unique_text->p_words[n_elem].pt);
+    }
+
+    for(uint n_word = 0; n_word < text->n_words; n_word++){
+        HTableFind(htable, text->p_words[n_word].pt);
+    }
+
+    return;
+}
 
 int main(const int argc, const char* argv[]){
 
@@ -25,18 +42,19 @@ int main(const int argc, const char* argv[]){
         printf("unable to open %s\n", argv[1]);
         return 0;
     }
+    
+    text_storage* unique_text = GetStorage("unique_words.txt");
+    /*
+    char** p_words = (char**)calloc(unique_text->n_words, sizeof(char**));
 
-    char** p_words = (char**)calloc(text->n_words, sizeof(char**));
-
-    word* uniq_words = GetUnicalWords(text);
-
-    for(int i = 0; i < text->n_words; i++){
-
-        p_words[i] = uniq_words[i].pt;
+    for(int i = 0; i < unique_text->n_words; i++){
+        p_words[i] = unique_text->p_words[i].pt;
     }
 
-    ReduceWords(uniq_words);
-    GetSpectralAnalysis(p_words, text->n_words, hash_size, "lol");
-
+    GetSpectralAnalysis(p_words, unique_text->n_words, hash_size, "lol");    
+    */
+    
+    UseHtable(text, unique_text, hash_size);
+    
     return 0;
 }

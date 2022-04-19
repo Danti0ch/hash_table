@@ -29,6 +29,7 @@ int get_file_size(const char* name);
 void list_sort(list* obj);
 #endif
 
+
 /**
  * @brief ищет физический индекс по логическому
  * 
@@ -423,7 +424,7 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 	node* cur_node = obj->nodes + obj->head;
 
 	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){
-		if(cur_node->val == val) return cur_node;
+		if(strcmp(cur_node->val, val) == 0) return cur_node;
 	}
 
 	return NULL;

@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <immintrin.h>
+
 static const uint crc32_table[] =
 {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,
@@ -129,13 +131,13 @@ uint HashBRol(const char* str){
 }
 //----------------------------------------------------------------------------------------//
 
-uint HashCRC32(const char* str){
+uint HashCRC32(const char* str, const uint len){
 
     assert(str != NULL);
 
     uint hash = 0xFFFFFFFF;
 
-    for(uint i = 0; i < MAX_STR_LEN && str[i] != 0; i++){
+    for(uint i = 0; i < MAX_STR_LEN / 4 && str[i] != 0; i++){
 
         hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
     }

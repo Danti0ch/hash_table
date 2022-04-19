@@ -57,6 +57,10 @@ const uint MAX_N_WORDS_IN_LINE = 10000;
  */
 text_storage* GetStorage(const char *file_name);
 
+text_storage* GetStorage(const char *buffer, const size_t buf_size);
+
+text_storage* GetStorage(const text_storage* src_storage);
+
 /**
  * записывает в файл output_file строки из структуры storage, в порядке массива p_lines
  * 
@@ -86,8 +90,9 @@ err_code WriteBufferOfStorage(FILE *output_file, const text_storage *storage);
  */ 
 err_code TextStorageRemove(text_storage *storage);
 
-word* GetUnicalWords(text_storage* storage);
+// TODO: sописание
+void MakeUniqueData(text_storage* storage);
 
-void ReduceWords(word* p_words);
+void WriteWords(const text_storage* storage, const char* file_name);
 
 #endif //TEXT_STORAGE_H
