@@ -25,7 +25,7 @@ static list* LST_POISON = (list*)123;
 
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
-Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str, const uint mod)){
+Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str)){
 
     assert(hash_func != NULL);
 
@@ -57,7 +57,7 @@ uint HTableFind(Htabl* obj, list_T str){
     assert(obj != NULL);
     assert(str != NULL);
 
-    uint list_ind = obj->hash_func(str, obj->size);
+    uint list_ind = obj->hash_func(str) % obj->size;
 
     if(list_ind >= obj->size || obj->data[list_ind] == LST_POISON) return 0;
 
@@ -73,7 +73,7 @@ void HTableInsert(Htabl* obj, list_T str){
 
     assert(obj != NULL);
 
-    uint list_ind = obj->hash_func(str, obj->size);
+    uint list_ind = obj->hash_func(str) % obj->size;
 
     assert(list_ind < obj->size);
 
@@ -81,7 +81,9 @@ void HTableInsert(Htabl* obj, list_T str){
         obj->data[list_ind] = ListConstructor(1);
     }
 
-    PushBack(obj->data[list_ind], str);
+    if(ListFind(obj->data[list_ind], str) == NULL){
+        PushBack(obj->data[list_ind], str);
+    }
 
     return;
 }

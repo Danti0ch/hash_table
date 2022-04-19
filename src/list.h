@@ -12,11 +12,15 @@ typedef unsigned int uint;
 // TODO: insert after/be4
 
 // при верификации проверяются все элементы списка
-#define LINEAR_CHECKS 1
+#define LINEAR_CHECKS 2
 // при верификации проверяется тоолько основная иф=нформаиця списка
-#define SIMPLE_CHECKS 0
+#define SIMPLE_CHECKS 1
+// нет верификации
+#define NO_CHECKS 0
 
-#define DEBUG_MODE LINEAR_CHECKS
+#ifndef DEBUG_MODE
+    #define DEBUG_MODE SIMPLE_CHECKS
+#endif
 
 /**
  * @brief макрос для контроля того, как много данных мы хотим получить при дампе
@@ -232,7 +236,10 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS);
 
 #define LIST_DUMP(obj, meta) list_dump((obj), (meta), #obj, LOCATION);
 
-#if TOTAL_DUMP == 0
+#if DEBUG_MODE == NO_CHECKS
+#define LIST_OK(obj) ;                                 
+
+#elif TOTAL_DUMP == 0
 #define LIST_OK(obj)                                \
 {                                                   \
     int ver_code_ = (int)list_verification((obj));  \

@@ -14,18 +14,20 @@
 // TODO: добавить динамический размер???
 // TODO: обработка ошибок
 // TODO: одна инициализация буфера вместо 2х
+// TODO: интерефейсные функции
 
 /// хранит указатель на си строку и её длину
-struct string{
+struct word{
     char  *pt;       ///< указатель на слово
     size_t len;          ///< длина слова (strlen)
 };
 
 struct line_storage{
 
-    string* p_words;
+    word*   p_words;
     char*   p_line;
     size_t  n_words;
+    size_t  len;
 };
 
 struct text_storage{ /// структура, необходимая для хранения группы строк
@@ -34,12 +36,13 @@ struct text_storage{ /// структура, необходимая для хр�
     size_t n_words;     ///< количество слов
 
     line_storage* p_lines;      ///< массив структур, в которых хранится информация о строках
-    string*       p_words;      ///< массив слова типа string
+    word*         p_words;      ///< массив слова типа string
     char          *buffer;         ///< буфер, в котором находится содержимое всех сдлв. каждое слово должна оканчиваться '\0'
 };
 
-enum ERR_CODE{ 
-    OK
+// TODO: -> log.h
+enum err_code{ 
+    R,
     MEM_ALLOC_ERROR,
     EMPTY_FILE,
 };
@@ -72,7 +75,7 @@ text_storage* GetStorage(const char *file_name);
  * 
  * \return код возвращаемого значения из func_codes
  */
-ERR_CODE WriteBufferOfStorage(FILE *output_file, const text_storage *storage);
+err_code WriteBufferOfStorage(FILE *output_file, const text_storage *storage);
 
 /**
  * функция очищает память, которая была динамически присвоена элементам storage в create_mem_storage
@@ -81,6 +84,10 @@ ERR_CODE WriteBufferOfStorage(FILE *output_file, const text_storage *storage);
  * 
  * \return код возвращаемого значения из func_codes
  */ 
-ERR_CODE TextStorageRemove(text_storage *storage);
+err_code TextStorageRemove(text_storage *storage);
+
+word* GetUnicalWords(text_storage* storage);
+
+void ReduceWords(word* p_words);
 
 #endif //TEXT_STORAGE_H

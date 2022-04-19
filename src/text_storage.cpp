@@ -5,6 +5,7 @@
  */
 
 #include "text_storage.h"
+#include <ctype.h>
 
 //----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
 
@@ -18,7 +19,7 @@
  * 
  * \return код ошибки или успеха
  */
-ERR_CODE get_file_metadata(const char *file_name, size_t *n_lines, size_t *len);
+err_code get_file_metadata(const char *file_name, size_t *n_lines, size_t *len, size_t* n_words);
 
 /**
  * @brief инициализирует text_storage
@@ -28,6 +29,8 @@ ERR_CODE get_file_metadata(const char *file_name, size_t *n_lines, size_t *len);
  * @return text_storage* 
  */
 text_storage* text_storage_init(const size_t buf_size, const size_t n_lines);
+
+int word_cmp(const word* w1, const word* w2);
 
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
@@ -43,7 +46,7 @@ text_storage* text_storage_init(const size_t buf_size, const size_t n_lines, con
     storage->n_words = n_words;
 
     storage->p_lines = (line_storage*)calloc(n_lines, sizeof(line_storage));
-    storage->p_words = (string*)calloc(n_words, sizeof(string));
+    storage->p_words = (word*)calloc(n_words, sizeof(word));
     storage->buffer  = (char*)calloc(buf_size, sizeof(char));
 
     assert(storage->p_lines != NULL && storage->buffer != NULL && storage->p_words != NULL);
@@ -56,19 +59,15 @@ text_storage* text_storage_init(const size_t buf_size, const size_t n_lines, con
 // TODO: refactor acuired
 text_storage* GetStorage(const char *file_name){
 
-    assert(storage != NULL);
     assert(file_name != NULL);
 
     size_t n_lines = 0, buf_size = 0, n_words = 0;
 
-    get_file_len(file_name, &n_lines, &buf_size, &n_words);
-
-    if(getting_len_result != OK)    assert(0);
-    if(storage->len_buf == 0)   assert(0);
+    get_file_metadata(file_name, &n_lines, &buf_size, &n_words);
 
     text_storage* storage = text_storage_init(buf_size, n_lines, n_words);
 
-    if(mem_for_storage_result != OK)    assert(0);
+    //if(mem_for_storage_result != OK)    assert(0);
 
     FILE *input_file = fopen(file_name, "r");
 
@@ -84,6 +83,7 @@ text_storage* GetStorage(const char *file_name){
     uint    n_line          = 0;
     uint    n_word          = 0;
     uint    n_symbs_in_line = 0;
+    uint    n_words_in_line = 0;
 
     for(int ind_buf = 0; ind_buf < storage->len_buf; ind_buf++){
 
@@ -109,9 +109,9 @@ text_storage* GetStorage(const char *file_name){
 
             n_symbs_in_line = ind_buf - n_symbs_in_line + 1;
             storage->p_lines[n_line].len     = n_symbs_in_line;
-            storage->p_lines[n_line].n_words = n_word;
+            storage->p_lines[n_line].n_words = n_word - n_words_in_line;
 
-            n_word = 0;
+            n_words_in_line = n_word;
             n_symbs_in_line = ind_buf + 1;
             n_line++;
         }
@@ -126,8 +126,42 @@ text_storage* GetStorage(const char *file_name){
 }
 //----------------------------------------------------------------------------------------//
 
+// TODO: нужно переделать, так как рушится инкапсуляция(words указывает на слова из какого-то буфера)
+
+void MakeUniqueData(text_storage* storage){
+
+    assert(storage != NULL);
+
+    size_t n_words = storage->n_words;
+
+    word* uniq_words = (word*)calloc(n_words, sizeof(word));
+
+    memcpy(uniq_words, storage->p_words, n_words * sizeof(word));
+
+    qsort(uniq_words, n_words, sizeof(word), (int(*) (const void *, const void *))word_cmp);
+
+    uint cur_word = 1;
+
+    for(uint i = 1; i < n_words; i++){
+        if(word_cmp(uniq_words + i, uniq_words + cur_word) != 0){
+            memcpy(uniq_words + cur_word, uniq_words + i, sizeof(word));
+            cur_word++;
+        }
+    }
+
+    return uniq_words;
+}
+//----------------------------------------------------------------------------------------//
+
+void ReduceWords(word* p_words){
+
+    free(p_words);
+    return;
+}
+//----------------------------------------------------------------------------------------//
+
 /*
-ERR_CODE WriteStorage(FILE *output_file, const text_storage *storage){
+err_code WriteStorage(FILE *output_file, const text_storage *storage){
 
     assert(storage     != NULL);
     assert(output_file != NULL);
@@ -141,7 +175,7 @@ ERR_CODE WriteStorage(FILE *output_file, const text_storage *storage){
 */
 //----------------------------------------------------------------------------------------//
 
-ERR_CODE WriteBufferOfStorage(FILE *output_file, const text_storage *storage){
+err_code WriteBufferOfStorage(FILE *output_file, const text_storage *storage){
 
     assert(storage     != NULL);
     assert(output_file != NULL);
@@ -155,11 +189,11 @@ ERR_CODE WriteBufferOfStorage(FILE *output_file, const text_storage *storage){
         fputc('\n', output_file);
     }
 
-    return OK;
+    return R;
 }
 //----------------------------------------------------------------------------------------//
 
-ERR_CODE TextStorageRemove(text_storage *storage){
+err_code TextStorageRemove(text_storage *storage){
 
     assert(storage != NULL);
     
@@ -168,13 +202,13 @@ ERR_CODE TextStorageRemove(text_storage *storage){
     free(storage->p_words);
     free(storage);
 
-    return OK;
+    return R;
 }
 //----------------------------------------------------------------------------------------//
 
 //----------------------LOCAL-FUNCTIONS-DEFINITIONS----------------------//
 
-ERR_CODE get_file_metadata(const char *file_name, size_t *n_lines, size_t *len, size_t* n_words){
+err_code get_file_metadata(const char *file_name, size_t *n_lines, size_t *len, size_t* n_words){
 
     assert(file_name != NULL);
 
@@ -228,6 +262,30 @@ ERR_CODE get_file_metadata(const char *file_name, size_t *n_lines, size_t *len, 
 
     free(buffer);
 
-    return OK;
+    return R;
+}
+//----------------------------------------------------------------------------------------//
+
+#define min(a, b) ((a) > (b)) ? (b) : (a)
+
+int word_cmp(const word* w1, const word* w2){
+
+    assert(w1 != NULL);
+    assert(w2 != NULL);
+
+    size_t min_size = min(w1->len, w2->len);
+
+    for(uint i = 0; i < min_size && w1->pt[i] != 0 && w2->pt[i] != 0; i++){
+        if(w1->pt[i] > w2->pt[i]){
+            return 1;
+        }
+        else if(w1->pt[i] < w2->pt[i]){
+            return -1;
+        }
+    }
+
+    if(w1->len > w2->len)      return  1;
+    else if(w1->len < w2->len) return -1;
+    return 0;
 }
 //----------------------------------------------------------------------------------------//

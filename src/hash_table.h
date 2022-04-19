@@ -6,7 +6,7 @@
 // TODO: указатель на хэш функцию - поле в структуре, хм
 struct HashTable{
     list** data;
-    uint (*hash_func)(const char* str, const uint mod);
+    uint (*hash_func)(const char* str);
     size_t size;
 }; 
 
@@ -18,7 +18,7 @@ enum HT_ERR_CODE{
 
 typedef HashTable Htabl;
 
-Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str, const uint mod));
+Htabl* HTableInit(const size_t size, uint (*hash_func)(const char* str));
 uint    HTableFind(Htabl* obj, list_T str);
 void    HTableInsert(Htabl* obj, list_T str);
 void    HTableRemove(Htabl* obj);

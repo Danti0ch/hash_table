@@ -6,17 +6,18 @@ typedef unsigned int uint;
 const uint MAX_STR_LEN  = 10000;
 const uint BITS_IN_BYTE = 8;
 
-uint HashReturn0(const char* str, const uint mod);
-uint HashFirstChar(const char* str, const uint mod);
-uint HashCheckSum(const char* str, const uint mod);
-uint HashStrLen(const char* str, const uint mod);
-uint HashBRol(const char* str, const uint mod);
+uint HashReturn0(const char* str);
+uint HashFirstChar(const char* str);
+uint HashCheckSum(const char* str);
+uint HashStrLen(const char* str);
+uint HashBRol(const char* str);
+uint HashCRC32(const char* str);
 
 // TODO: rename
 // TODO: добавить поле под статистику
 struct hash_func_meta{
 
-    uint (*p_func)(const char* str, const uint mod);
+    uint (*p_func)(const char* str);
     const char* name;
     const char* descr;
     // uint statistic;
@@ -47,6 +48,11 @@ const hash_func_meta hash_funcs[] = {
         HashBRol,
         "rol + xor",
         "индуктивное вычисление хэша: h_0 = str[0], h_<i+1> = rol(h_i) xor str[i+1]"
+    },
+    {
+        HashCRC32,
+        "crc32",
+        "crc32"
     }
 };
 

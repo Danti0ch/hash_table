@@ -4,6 +4,7 @@
 #include "hash_table.h"
 
 const char TEMP_FILE_NAME[] = "temp";
+const uint MAX_HASH_SIZE    = 1 << 30 - 1;
 
 /**
  * @brief функция строит гистограммы распределения длин вторичных структур для хэш таблицы по хэш функциям, которые указаны в фалй hash_funcs

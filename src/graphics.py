@@ -39,7 +39,7 @@ input_file.close()
 
 n_elems, htable_size, n_hashs = list(map(int, lines[0].split()))
 
-fig = plt.figure()
+fig = plt.figure(figsize=(14,7))
 
 axes = []
 half_n_hashs = int((n_hashs + 2)/ 3)

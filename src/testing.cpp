@@ -30,6 +30,7 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
         assert(htable != NULL);
 
         for(uint n_elem = 0; n_elem < n_elems; n_elem++){
+
             HTableInsert(htable, data[n_elem]);
         }
         
@@ -44,6 +45,7 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
 
             fprintf(temp_file, "%lu ", list_lengths[n_list]);
         }
+        
         fprintf(temp_file, "\n");
 
         HTableRemove(htable);
@@ -56,15 +58,5 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
     system("python3 ../src/graphics.py");
 
     return;
-}
-//----------------------------------------------------------------------------------------//
-
-void GetData(const char* data_file_name){
-
-    assert(data_file_name != NULL);
-
-    FILE* data_file = fopen(data_file_name, "r");
-
-    storage* = TextStorageInit()
 }
 //----------------------------------------------------------------------------------------//
