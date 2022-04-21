@@ -3,23 +3,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-//----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
+//========================================================================================//
+
+//
+
+//                          LOCAL_FUNCTIONS_DECLARATION
+
+//
+
+//========================================================================================//
 
 #define list_resize(obj, mode) _list_resize((obj), (mode), #obj, LOCATION)
 
 #define  extract_free_ind(obj) _extract_free_ind((obj), #obj, LOCATION)
 
-ERR_CODE _list_resize(list* obj, int mode, META_PARAMS);
+LIST_ERR_CODE _list_resize(list* obj, int mode, META_PARAMS);
 
 int _extract_free_ind(list* obj, META_PARAMS);
 
 int node_cmp(const void * node1, const void * node2);
 
-VERIF_CODE list_verification(const list* obj);
-
-void list_dump(const list* obj, meta_info *meta, META_PARAMS);
-
-void dump_nodes(const list* obj);
+LIST_VERIF_CODE list_verification(const list* obj);
 
 void print_list(const list* obj);
 
@@ -28,6 +32,23 @@ int get_file_size(const char* name);
 #if ENABLE_SORT
 void list_sort(list* obj);
 #endif
+
+
+
+
+// 								WOWOWW
+//
+//
+///
+extern "C" int fstrcmp(const char* str1, const char* str2);
+//
+//
+//
+//								WWOWOWOWO
+
+
+
+
 
 
 /**
@@ -62,9 +83,16 @@ inline int node_in_list(const list* obj, const node* nod){
 
 // ну да, поиск энивей за O(n), так что просто посортим за O(n). Сделаю возможность отключить сортировку через макрос
 
-//----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
+//========================================================================================//
 
-// OK
+//
+
+//                          PUBLIC_FUNCTIONS_DEFINITION
+
+//
+
+//========================================================================================//
+
 list* _ListConstructor(const size_t capacity, LOC_PARAMS){
 
 	if(capacity == 0) return NULL;
@@ -75,7 +103,7 @@ list* _ListConstructor(const size_t capacity, LOC_PARAMS){
 
 /*
 	if(obj->nodes == NULL){
-		return ERR_CODE::MEM_ALLOC;
+		return LIST_ERR_CODE::MEM_ALLOC;
 	}
 */
 
@@ -110,7 +138,7 @@ list* _ListConstructor(const size_t capacity, LOC_PARAMS){
 //----------------------------------------------------------------------------------------//
 
 // OK
-ERR_CODE _ListDestructor(list* obj, META_PARAMS){
+LIST_ERR_CODE _ListDestructor(list* obj, META_PARAMS){
 
 	assert(obj != NULL);
 	LIST_OK(obj)
@@ -132,7 +160,7 @@ ERR_CODE _ListDestructor(list* obj, META_PARAMS){
 	obj->is_sorted  = 1;
 #endif
 */
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
@@ -196,7 +224,7 @@ node* _ListBefore(const list* obj, const node* nod, META_PARAMS){
 
 // TODO: если я захочу, чтобы массив всегда был отсортирован - тогда тут лучше сделать специальную функцию для сортировки,
 // а в pushback'e просто в конец массива вставлять
-ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS){
+LIST_ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS){
 
 	assert(obj != NULL);
 	LIST_OK(obj)
@@ -204,8 +232,8 @@ ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS){
 	if(obj->size >= obj->capacity){
 		int resize_rez = (int)list_resize(obj, INCREASE_MODE);
 		
-		if(resize_rez != (int)ERR_CODE::OK){
-			return (ERR_CODE)resize_rez;
+		if(resize_rez != (int)LIST_ERR_CODE::OK){
+			return (LIST_ERR_CODE)resize_rez;
 		}
 	}
 
@@ -232,13 +260,13 @@ ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS){
 	obj->is_sorted = UNSORTED;
 #endif
 	LIST_OK(obj)
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
 // OK
 
-ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
+LIST_ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 
 	assert(obj != NULL);
 	LIST_OK(obj)
@@ -246,8 +274,8 @@ ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 	if(obj->size >= obj->capacity){
 		int resize_rez = (int)list_resize(obj, INCREASE_MODE);
 		
-		if(resize_rez != (int)ERR_CODE::OK){
-			return (ERR_CODE)resize_rez;
+		if(resize_rez != (int)LIST_ERR_CODE::OK){
+			return (LIST_ERR_CODE)resize_rez;
 		}
 	}
 
@@ -270,27 +298,27 @@ ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 
 	LIST_OK(obj)
 
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
 // OK
 // да! будем сортить сразу после вставки/удаления. Тогда операция вставки будет за O(n * const) (radix), или за O(n) (count_sort)
-ERR_CODE _ListInsert(list* obj, const uint pos, const list_T val, META_PARAMS){
+LIST_ERR_CODE _ListInsert(list* obj, const uint pos, const list_T val, META_PARAMS){
 
 	assert(obj != NULL);
 	LIST_OK(obj);
 
 	// если = obj->size, то вставляем в конец как pushback'e
 	if(pos < 0 || pos > obj->size){
-		return ERR_CODE::INVALID_POS;
+		return LIST_ERR_CODE::INVALID_POS;
 	}
 
 	if(obj->size >= obj->capacity){
 		int resize_rez = (int)list_resize(obj, INCREASE_MODE);
 		
-		if(resize_rez != (int)ERR_CODE::OK){
-			return (ERR_CODE)resize_rez;
+		if(resize_rez != (int)LIST_ERR_CODE::OK){
+			return (LIST_ERR_CODE)resize_rez;
 		}
 	}
 
@@ -315,26 +343,26 @@ ERR_CODE _ListInsert(list* obj, const uint pos, const list_T val, META_PARAMS){
 	obj->size++;
 
 	LIST_OK(obj)
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
 // OK
-ERR_CODE _ListRemove(list* obj, const int pos, META_PARAMS){
+LIST_ERR_CODE _ListRemove(list* obj, const int pos, META_PARAMS){
 
 	assert(obj != NULL);
 
 	LIST_OK(obj);
 
 	if(pos < 0 || pos >= obj->size){
-		return ERR_CODE::INVALID_POS;
+		return LIST_ERR_CODE::INVALID_POS;
 	}
 
 	if((obj->capacity >> REDUCE_RATIO) >= obj->size){
 		int resize_rez = (int)list_resize(obj, REDUCE_MODE);
 
-		if(resize_rez != (int)ERR_CODE::OK){
-			return (ERR_CODE)resize_rez;
+		if(resize_rez != (int)LIST_ERR_CODE::OK){
+			return (LIST_ERR_CODE)resize_rez;
 		}
 	}
 
@@ -380,12 +408,12 @@ ERR_CODE _ListRemove(list* obj, const int pos, META_PARAMS){
 	obj->size--;
 
 	LIST_OK(obj)
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
 // OK
-ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
+LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 
 	assert(obj != NULL);
 	LIST_OK(obj)
@@ -410,7 +438,7 @@ ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 #endif
 	LIST_OK(obj)
 	
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
@@ -423,13 +451,215 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 
 	node* cur_node = obj->nodes + obj->head;
 
+	// TODO: sort + strcmp on asm to optimize
+
+#if ENABLE_SORT
+	for(uint n_node = 0; n_node < obj->size; n_node++){
+		if(strcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
+	}
+#else
 	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){
 		if(strcmp(cur_node->val, val) == 0) return cur_node;
 	}
-
+#endif // ENABLE_SORT
 	return NULL;
 }
-//----------------------LOCAL-FUNCTIONS-DEFINITIONS----------------------//
+//----------------------------------------------------------------------------------------//
+
+
+LIST_VERIF_CODE VerifyList(const list* obj){
+
+	assert(obj != NULL);
+
+	if(obj->nodes == NULL){
+		return LIST_VERIF_CODE::CORRUPTED_MEM;
+	}
+
+	if(obj->head != FREE_MATE && obj->head >= obj->capacity){
+		return LIST_VERIF_CODE::HEAD_INVALID;
+	}
+	
+	if(obj->capacity < obj->size){
+		return LIST_VERIF_CODE::CORRUPTED_SIZE;
+	}
+
+	#if DEBUG_MODE == LINEAR_CHECKS
+
+	uint8_t* visited = (uint8_t*)calloc(obj->capacity, sizeof(uint8_t));
+
+	// TODO: free(visited) make syntax sugar
+	if(obj->size > 0){
+
+		// checking data part
+		if(obj->head == FREE_MATE || (obj->head >= obj->capacity || obj->head < 0)){
+			free(visited);
+			return LIST_VERIF_CODE::HEAD_INVALID;
+		}
+
+		int n_node = obj->head;
+		int next_ind = obj->nodes[n_node].next;
+		
+		for(; next_ind != FREE_MATE; visited[n_node] = 1, n_node = next_ind, next_ind = obj->nodes[next_ind].next){
+
+			if(visited[n_node]){
+				free(visited);
+				return LIST_VERIF_CODE::CORRUPTED_INJECTIVITY;
+			}
+
+			// TODO: optimize ?
+			if(n_node != obj->head && obj->nodes[n_node].prev == FREE_MATE){
+				free(visited);
+				return LIST_VERIF_CODE::PREV_CORRUPTED;
+			}
+
+			if(next_ind >= obj->capacity || next_ind < 0){
+				free(visited);
+				return LIST_VERIF_CODE::CORRUPTED_LINK;
+			}
+
+			if(n_node != obj->nodes[next_ind].prev){
+				free(visited);
+				return LIST_VERIF_CODE::CORRUPTED_LINK;
+			}
+		}
+
+		if(n_node != obj->tail){
+			free(visited);
+			return LIST_VERIF_CODE::TAIL_INVALID;
+		}
+		visited[n_node] = 1;
+	}
+
+	// checking free items sublist
+
+	if(obj->capacity != obj->size){
+
+		if(obj->head_free == FREE_MATE || (obj->head_free < 0 || obj->head_free >= obj->capacity)){
+			free(visited);
+			return LIST_VERIF_CODE::HEAD_FREE_CORRUPTED;
+		}
+
+		int n_node = obj->head_free;
+		int next_ind = obj->nodes[n_node].next;
+
+		for(; next_ind != FREE_MATE; visited[n_node] = 1, n_node = next_ind, next_ind = obj->nodes[next_ind].next){
+
+			if(obj->nodes[n_node].prev != FREE_MATE){
+				free(visited);
+				return LIST_VERIF_CODE::FREE_CORRUPTED;
+			}
+			
+			if(visited[n_node]){
+				free(visited);
+				return LIST_VERIF_CODE::CORRUPTED_INJECTIVITY;
+			}
+
+			if(next_ind >= obj->capacity || next_ind < 0){
+				free(visited);
+				return LIST_VERIF_CODE::CORRUPTED_LINK;
+			}
+		}
+
+		if(obj->tail_free != n_node){
+			free(visited);
+			return LIST_VERIF_CODE::TAIL_FREE_CORRUPTED;
+		}
+
+		visited[n_node] = 1;
+	}
+
+	// checking that all nodes were covered
+	for(int n_node = 0; n_node < obj->capacity; n_node++){
+
+		if(!visited[n_node]){
+			free(visited);
+			return LIST_VERIF_CODE::VOID_ELEMENT;
+		}
+	}
+
+	free(visited);
+	#endif // DEBUG_MODE == LINEAR_CHECKS
+
+	return LIST_VERIF_CODE::OK;
+}
+//----------------------------------------------------------------------------------------//
+
+void ListDump(const list* obj, meta_info *meta, META_PARAMS){
+
+	assert(obj  != NULL);
+	assert(meta != NULL);
+
+#if ENABLE_SORT
+
+	LOG("<br><br>Dump called from function %s(%d)<br>"
+		   "That was called from file %s, function %s(%d)<br>"
+		   "[#] list %s<int><br>"
+		   "<br>"
+		   "capacity  = %lu<br>"
+		   "size      = %lu<br>"
+		   "head      = %d<br>"
+		   "tail 	  = %d<br>"
+		   "head_free = %d<br>"
+		   "tail_free = %d<br>"
+		   "is_sorted = %u<br>"
+		   "<br>",
+		   func_name, n_line, meta->file_name, meta->func_name, meta->n_line,
+		   meta->obj_name,
+		   obj->capacity, obj->size, obj->head, obj->tail, obj->head_free, obj->tail_free, obj->is_sorted);
+
+#else
+		LOG("<br><br>Dump called from function %s(%d)<br>"
+		   "That was called from file %s, function %s(%d)<br>"
+		   "[#] list %s<int><br>"
+		   "<br>"
+		   "capacity  = %lu<br>"
+		   "size      = %lu<br>"
+		   "head      = %d<br>"
+		   "tail 	  = %d<br>"
+		   "head_free = %d<br>"
+		   "tail_free = %d<br>"
+		   "<br>",
+		   func_name, n_line, meta->file_name, meta->func_name, meta->n_line,
+		   meta->obj_name,
+		   obj->capacity, obj->size, obj->head, obj->tail, obj->head_free, obj->tail_free);
+
+#endif // ENABLE_SORT
+
+	DumpNodes(obj);
+
+	LOG("<br><br>");
+	//print_list(obj);
+	//to_log("<br><br>");
+	
+	return;
+}
+//----------------------------------------------------------------------------------------//
+
+
+// TODO: для пользовательского дампа добавить аргумент - функцию вывода нод.val
+// OK
+void DumpNodes(const list* obj){
+	
+	assert(obj != NULL);
+
+	LOG("nodes = [");
+	for(int n_node = 0; n_node < obj->capacity; n_node++){
+		LOG("(%s, %d, %d), ", obj->nodes[n_node].val, obj->nodes[n_node].next, obj->nodes[n_node].prev);
+	}
+	LOG("]<br>");
+
+	return;
+}
+
+//========================================================================================//
+
+//
+
+//                          LOCAL_FUNCTIONS_DEFINITION
+
+//
+
+//========================================================================================//
 
 // OK
 int search_phys_pos(list* obj, int pos){
@@ -485,7 +715,7 @@ int _extract_free_ind(list* obj, META_PARAMS){
 //----------------------------------------------------------------------------------------//
 
 // OK
-ERR_CODE _list_resize(list* obj, int mode, META_PARAMS){
+LIST_ERR_CODE _list_resize(list* obj, int mode, META_PARAMS){
 
 	assert(obj != NULL);
 	//LIST_OK(obj)
@@ -497,7 +727,7 @@ ERR_CODE _list_resize(list* obj, int mode, META_PARAMS){
 		node* p_new_mem = (node*)calloc(new_capacity, sizeof(node));
 
 		if(p_new_mem == NULL){
-			return ERR_CODE::MEM_ALLOC;
+			return LIST_ERR_CODE::MEM_ALLOC;
 		}
 
 		for(int n_node = 0; n_node < obj->capacity; n_node++){
@@ -540,7 +770,7 @@ ERR_CODE _list_resize(list* obj, int mode, META_PARAMS){
 		node* p_new_mem = (node*)calloc(new_capacity, sizeof(node));
 	
 		if(p_new_mem == NULL){
-			return ERR_CODE::MEM_ALLOC;
+			return LIST_ERR_CODE::MEM_ALLOC;
 		}
 
 		memcpy(p_new_mem, obj->nodes, new_capacity * sizeof(node));
@@ -557,7 +787,7 @@ ERR_CODE _list_resize(list* obj, int mode, META_PARAMS){
 	}
 	*/
 	//LIST_OK(obj)
-	return ERR_CODE::OK;
+	return LIST_ERR_CODE::OK;
 }
 //----------------------------------------------------------------------------------------//
 
@@ -633,191 +863,7 @@ void list_sort(list* obj){
 }
 //----------------------------------------------------------------------------------------//
 #endif //ENABLE_SORT
-// OK
 
-VERIF_CODE list_verification(const list* obj){
-
-	assert(obj != NULL);
-
-	if(obj->nodes == NULL){
-		return VERIF_CODE::CORRUPTED_MEM;
-	}
-
-	if(obj->head != FREE_MATE && obj->head >= obj->capacity){
-		return VERIF_CODE::HEAD_INVALID;
-	}
-	
-	if(obj->capacity < obj->size){
-		return VERIF_CODE::CORRUPTED_SIZE;
-	}
-
-	#if DEBUG_MODE == LINEAR_CHECKS
-
-	uint8_t* visited = (uint8_t*)calloc(obj->capacity, sizeof(uint8_t));
-
-	// TODO: free(visited) make syntax sugar
-	if(obj->size > 0){
-
-		// checking data part
-		if(obj->head == FREE_MATE || (obj->head >= obj->capacity || obj->head < 0)){
-			free(visited);
-			return VERIF_CODE::HEAD_INVALID;
-		}
-
-		int n_node = obj->head;
-		int next_ind = obj->nodes[n_node].next;
-		
-		for(; next_ind != FREE_MATE; visited[n_node] = 1, n_node = next_ind, next_ind = obj->nodes[next_ind].next){
-
-			if(visited[n_node]){
-				free(visited);
-				return VERIF_CODE::CORRUPTED_INJECTIVITY;
-			}
-
-			// TODO: optimize ?
-			if(n_node != obj->head && obj->nodes[n_node].prev == FREE_MATE){
-				free(visited);
-				return VERIF_CODE::PREV_CORRUPTED;
-			}
-
-			if(next_ind >= obj->capacity || next_ind < 0){
-				free(visited);
-				return VERIF_CODE::CORRUPTED_LINK;
-			}
-
-			if(n_node != obj->nodes[next_ind].prev){
-				free(visited);
-				return VERIF_CODE::CORRUPTED_LINK;
-			}
-		}
-
-		if(n_node != obj->tail){
-			free(visited);
-			return VERIF_CODE::TAIL_INVALID;
-		}
-		visited[n_node] = 1;
-	}
-
-	// checking free items sublist
-
-	if(obj->capacity != obj->size){
-
-		if(obj->head_free == FREE_MATE || (obj->head_free < 0 || obj->head_free >= obj->capacity)){
-			free(visited);
-			return VERIF_CODE::HEAD_FREE_CORRUPTED;
-		}
-
-		int n_node = obj->head_free;
-		int next_ind = obj->nodes[n_node].next;
-
-		for(; next_ind != FREE_MATE; visited[n_node] = 1, n_node = next_ind, next_ind = obj->nodes[next_ind].next){
-
-			if(obj->nodes[n_node].prev != FREE_MATE){
-				free(visited);
-				return VERIF_CODE::FREE_CORRUPTED;
-			}
-			
-			if(visited[n_node]){
-				free(visited);
-				return VERIF_CODE::CORRUPTED_INJECTIVITY;
-			}
-
-			if(next_ind >= obj->capacity || next_ind < 0){
-				free(visited);
-				return VERIF_CODE::CORRUPTED_LINK;
-			}
-		}
-
-		if(obj->tail_free != n_node){
-			free(visited);
-			return VERIF_CODE::TAIL_FREE_CORRUPTED;
-		}
-
-		visited[n_node] = 1;
-	}
-
-	// checking that all nodes were covered
-	for(int n_node = 0; n_node < obj->capacity; n_node++){
-
-		if(!visited[n_node]){
-			free(visited);
-			return VERIF_CODE::VOID_ELEMENT;
-		}
-	}
-
-	free(visited);
-	#endif // DEBUG_MODE == LINEAR_CHECKS
-
-	return VERIF_CODE::OK;
-}
-//----------------------------------------------------------------------------------------//
-
-// OK
-void list_dump(const list* obj, meta_info *meta, META_PARAMS){
-
-	assert(obj  != NULL);
-	assert(meta != NULL);
-
-#if ENABLE_SORT
-
-	to_log("<br><br>Dump called from function %s(%d)<br>"
-		   "That was called from file %s, function %s(%d)<br>"
-		   "[#] list %s<int><br>"
-		   "<br>"
-		   "capacity  = %lu<br>"
-		   "size      = %lu<br>"
-		   "head      = %d<br>"
-		   "tail 	  = %d<br>"
-		   "head_free = %d<br>"
-		   "tail_free = %d<br>"
-		   "is_sorted = %u<br>"
-		   "<br>",
-		   func_name, n_line, meta->file_name, meta->func_name, meta->n_line,
-		   meta->obj_name,
-		   obj->capacity, obj->size, obj->head, obj->tail, obj->head_free, obj->tail_free, obj->is_sorted);
-
-#else
-		to_log("<br><br>Dump called from function %s(%d)<br>"
-		   "That was called from file %s, function %s(%d)<br>"
-		   "[#] list %s<int><br>"
-		   "<br>"
-		   "capacity  = %lu<br>"
-		   "size      = %lu<br>"
-		   "head      = %d<br>"
-		   "tail 	  = %d<br>"
-		   "head_free = %d<br>"
-		   "tail_free = %d<br>"
-		   "<br>",
-		   func_name, n_line, meta->file_name, meta->func_name, meta->n_line,
-		   meta->obj_name,
-		   obj->capacity, obj->size, obj->head, obj->tail, obj->head_free, obj->tail_free);
-
-#endif // ENABLE_SORT
-
-	dump_nodes(obj);
-
-	to_log("<br><br>");
-	//print_list(obj);
-	//to_log("<br><br>");
-	
-	return;
-}
-//----------------------------------------------------------------------------------------//
-
-// TODO: для пользовательского дампа добавить аргумент - функцию вывода нод.val
-// OK
-void dump_nodes(const list* obj){
-	
-	assert(obj != NULL);
-
-	to_log("nodes = [");
-	for(int n_node = 0; n_node < obj->capacity; n_node++){
-		to_log("(%s, %d, %d), ", obj->nodes[n_node].val, obj->nodes[n_node].next, obj->nodes[n_node].prev);
-	}
-	to_log("]<br>");
-
-	return;
-}
 //----------------------------------------------------------------------------------------//
 
 /*

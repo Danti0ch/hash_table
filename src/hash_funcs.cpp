@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <immintrin.h>
+#include <nmmintrin.h>
 
 static const uint crc32_table[] =
 {
@@ -131,16 +131,17 @@ uint HashBRol(const char* str){
 }
 //----------------------------------------------------------------------------------------//
 
-uint HashCRC32(const char* str, const uint len){
+uint HashCRC32(const char* str){
 
     assert(str != NULL);
 
     uint hash = 0xFFFFFFFF;
 
-    for(uint i = 0; i < MAX_STR_LEN / 4 && str[i] != 0; i++){
+    for(uint i = 0; i < MAX_STR_LEN && str[i] != 0; i+=4){
 
-        hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
+        hash = _mm_crc32_u32(hash, *((uint*)str));
     }
+
 
     return hash;
 }

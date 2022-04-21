@@ -2,6 +2,7 @@
 #include "hash_funcs.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 // TODO: посмотреть про функциональные языки
 // TODO: assert -> обработчик ошибок
@@ -26,7 +27,8 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
         fprintf(temp_file, "%s\n", hash_funcs[n_func].name);
         fprintf(temp_file, "%s\n", hash_funcs[n_func].descr);
 
-        Htabl* htable = HTableInit(htable_size, hash_funcs[n_func].p_func);
+        HTable* htable = NULL;
+        HTableInitCustomHash(&htable, htable_size, hash_funcs[n_func].p_func);
         assert(htable != NULL);
 
         for(uint n_elem = 0; n_elem < n_elems; n_elem++){

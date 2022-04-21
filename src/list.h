@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "log.h"
+#include "logger.h"
 
 #define SUCCESSS 1
 
@@ -69,7 +69,7 @@ const char LOG_FILE_NAME[10] = "log.htm";
 const int CMD_STR_SIZE = sizeof(GVIZ_DOT_NAME) + sizeof(GVIZ_HTM_NAME) + 30;
 
 // list condition codes
-enum class VERIF_CODE{
+enum class LIST_VERIF_CODE{
     OK,
     CORRUPTED_MEM,
     HEAD_INVALID,
@@ -87,7 +87,7 @@ enum class VERIF_CODE{
     VOID_ELEMENT                       // means that we have element in list that is not free and not busy
 };
 
-enum class ERR_CODE{
+enum class LIST_ERR_CODE{
     OK,
     MEM_ALLOC,
     INVALID_POS
@@ -99,6 +99,7 @@ struct meta_info{
     char* func_name;
     char* file_name;
     uint32_t   n_line;
+    uint ver_code;
 };
 
 struct node{
@@ -151,7 +152,7 @@ struct list{
 
 list*  _ListConstructor(const size_t capacity, LOC_PARAMS);
 
-ERR_CODE  _ListDestructor(list* obj, META_PARAMS);
+LIST_ERR_CODE  _ListDestructor(list* obj, META_PARAMS);
 
 /**
  * @brief возвращает указатель на голову списка
@@ -194,7 +195,7 @@ node* _ListBefore(const list* obj, const node* nod, META_PARAMS);
  * @param val значение элемента
  * @return код ошибки
  */
-ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS);
+LIST_ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS);
 
 /**
  * @brief вставляет элемент в конец списка
@@ -203,7 +204,7 @@ ERR_CODE _PushFront(list* obj, const list_T val, META_PARAMS);
  * @param val значение элемента
  * @return код ошибки
  */
-ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS);
+LIST_ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS);
 
 /**
  * @brief ищет физический индекс pos с помощью метлда SearchBYPos
@@ -211,16 +212,16 @@ ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS);
  * @param obj 
  * @param pos 
  * @param val 
- * @return ERR_CODE 
+ * @return LIST_ERR_CODE 
  */
-ERR_CODE _ListInsert(list* obj, const uint pos, const list_T val, META_PARAMS);
+LIST_ERR_CODE _ListInsert(list* obj, const uint pos, const list_T val, META_PARAMS);
 
 // insert after
 // insert before
 
-ERR_CODE _ListRemove(list* obj, const int pos, META_PARAMS);
+LIST_ERR_CODE _ListRemove(list* obj, const int pos, META_PARAMS);
 
-ERR_CODE _ListRemoveAll(list* obj, META_PARAMS);
+LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS);
 
 /**
  * @brief возвращает указатель на узел списка, если есть узел со значением val,
@@ -232,6 +233,11 @@ ERR_CODE _ListRemoveAll(list* obj, META_PARAMS);
  */
 node* _ListFind(const list* obj, const list_T val, META_PARAMS);
 
+LIST_VERIF_CODE VerifyList(const list* obj);
+
+void ListDump(const list* obj, meta_info *meta, META_PARAMS);
+void DumpNodes(const list* obj);
+
 // int is_sorted
 
 #define LIST_DUMP(obj, meta) list_dump((obj), (meta), #obj, LOCATION);
@@ -240,12 +246,12 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS);
 #define LIST_OK(obj) ;                                 
 
 #elif TOTAL_DUMP == 0
-#define LIST_OK(obj)                                \
-{                                                   \
-    int ver_code_ = (int)list_verification((obj));  \
+#define LIST_OK(obj)                             \
+{                                                 \
+    int ver_code_ = (int)VerifyList((obj));        \
                                                     \
-    if(ver_code_ != (int)VERIF_CODE::OK){           \
-        printf("-------  <ERROR> -------\n"         \
+    if(ver_code_ != (int)LIST_VERIF_CODE::OK){      \
+        LOG("-------  <ERROR> -------\n"            \
                "code:           %d\n"               \
                "file:           %s\n"               \
                "function:       %s(%d)\n"           \
@@ -254,16 +260,15 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS);
                ver_code_, file_name,                \
                func_name, n_line,                   \
                __FUNCTION__, __LINE__);             \
-        exit(0);                                    \
     }                                               \
 }
 #else
-#define LIST_OK(obj)                                                    \
-{                                                                       \
-    int ver_code_ = (int)list_verification((obj));                      \
-    meta_info meta = {};                                                \
-                                                                        \
-    meta.obj_name = (char*)calloc(strlen(obj_name), sizeof(char));      \
+#define LIST_OK(obj)                                              \
+{                                                                  \
+    int ver_code_ = (int)VerifyList((obj));                         \
+    meta_info meta = {};                                             \
+                                                                      \
+    meta.obj_name = (char*)calloc(strlen(obj_name), sizeof(char));     \
     strcpy(meta.obj_name, obj_name);                                    \
                                                                         \
     meta.file_name = (char*)calloc(strlen(file_name), sizeof(char));    \
@@ -280,8 +285,8 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS);
     free(meta.file_name);                                               \
     free(meta.func_name);                                               \
                                                                         \
-    if(ver_code_ != (int)VERIF_CODE::OK){                               \
-        printf("------- <ERROR> ------- \n"                             \
+    if(ver_code_ != (int)LIST_VERIF_CODE::OK){                               \
+        LOG("------- <ERROR> ------- \n"                             \
                "code:           %d\n"                                   \
                "file:           %s\n"                                   \
                "function:       %s(%d)\n"                               \
@@ -291,7 +296,6 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS);
                func_name, n_line,                                       \
                __FUNCTION__, __LINE__);                                 \
         close_log_file();                                               \
-        exit(0);                                                        \
     }                                                                   \
                                                                         \
 }
