@@ -1,6 +1,7 @@
 #include "hash_funcs.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <nmmintrin.h>
 
@@ -85,7 +86,7 @@ uint  HashFirstChar(const char* str){
 
     assert(str != NULL);
 
-    return (uint)str[0];
+    return (uint)(str[0]);
 }
 //----------------------------------------------------------------------------------------//
 
@@ -94,7 +95,8 @@ uint HashCheckSum(const char* str){
     assert(str != NULL);
 
     uint sum = 0;
-    for(uint i = 0; str[i] != 0, i < MAX_STR_LEN; i++){
+
+    for(uint i = 0; str[i] != 0 && i < MAX_STR_LEN; i++){
         sum += (uint)str[i];
     }
 
@@ -137,11 +139,10 @@ uint HashCRC32(const char* str){
 
     uint hash = 0xFFFFFFFF;
 
-    for(uint i = 0; i < MAX_STR_LEN && str[i] != 0; i+=4){
+    for(uint i = 0; i < MAX_STR_LEN / 4 && str[i] != 0; i++){
 
-        hash = _mm_crc32_u32(hash, *((uint*)str));
+        hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
     }
-
 
     return hash;
 }

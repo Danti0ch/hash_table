@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+const int INCREASE_RATIO = 1;
+const int REDUCE_RATIO   = 3;
+
+// режим для resize
+const int INCREASE_MODE  = 1;
+const int REDUCE_MODE    = 0;
+
 //========================================================================================//
 
 //
@@ -442,7 +449,32 @@ LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 }
 //----------------------------------------------------------------------------------------//
 
-// TODO:
+
+/*
+
+	uint size = obj->size;
+	int temp = 0;
+	for(uint n_node = 0; n_node < size; n_node++){
+		printf("%u\n", n_node);
+		asm(".intel_syntax noprefix\n\t" // директива GAS, включаем Intel синтаксис.
+			"mov rdi, %1\n\t"            // прибавляем значение переменной b к eax.
+			"mov rsi, %2\n\t"            // перемещаем в переменную c значение eax.
+			".att_syntax prefix\n\t"
+			"call fstrcmp\n\t"
+			".intel_syntax noprefix\n\t"
+			"mov %0, eax\n\t"
+			".att_syntax prefix\n\t"
+			:"=r"(temp)
+			:"r"(cur_node[n_node].val), "r"(val), "r"(cur_node + n_node)
+			: "rdi", "rsi", "rax",  "rdx", "rbx"                     // список разрушаемых регистров.
+			);
+		asm(".att_syntax prefix\n\t");
+		if(temp == 0){
+			return cur_node + n_node;
+		}
+	}
+*/
+
 node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 	
 	LIST_OK(obj)
@@ -454,8 +486,11 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 	// TODO: sort + strcmp on asm to optimize
 
 #if ENABLE_SORT
-	for(uint n_node = 0; n_node < obj->size; n_node++){
-		if(strcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
+
+	uint size = obj->size;
+
+	for(uint n_node = 0; n_node < size; n_node++){
+		if(fstrcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
 	}
 #else
 	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){

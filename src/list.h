@@ -53,13 +53,6 @@ const uint SORTED   = 1;
 const uint UNSORTED = 0;
 #endif
 
-const int INCREASE_RATIO = 1;
-const int REDUCE_RATIO   = 3;
-
-// режим для resize
-const int INCREASE_MODE  = 1;
-const int REDUCE_MODE    = 0;
-
 // default file names
 const char GVIZ_DOT_NAME[20] = "gviztmp.dot";
 const char GVIZ_HTM_NAME[20] = "tmp.htm";

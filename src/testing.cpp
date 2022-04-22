@@ -7,19 +7,17 @@
 // TODO: посмотреть про функциональные языки
 // TODO: assert -> обработчик ошибок
 
-void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t htable_size, const char* image_name){
+void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t htable_size, const char* image_name, const BAR_DRAW_MODE draw_mode, const uint is_show){
 
     assert(data           != NULL);
     assert(image_name     != NULL);
     assert(htable_size    != 0);
     assert(n_elems        != 0);
     
-    size_t* list_lengths = (size_t*)calloc(htable_size, sizeof(size_t));
-    assert(list_lengths != NULL);
-
     FILE* temp_file = fopen(TEMP_FILE_NAME, "w");
     assert(temp_file != NULL);
 
+    fprintf(temp_file, "%d %u\n", draw_mode, is_show);
     fprintf(temp_file, "%lu %lu %u\n", n_elems, htable_size, N_HASH_FUNCS);
 
     for(uint n_func = 0; n_func < N_HASH_FUNCS; n_func++){
@@ -35,29 +33,55 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
 
             HTableInsert(htable, data[n_elem]);
         }
-        
+
+        for(uint n_list = 0; n_list < htable_size; n_list++){
+            if(IsListEmpty(htable, n_list)) continue;
+            for(uint n_elem = 0; n_elem < htable->data[n_list]->size; n_elem++){
+                fprintf(temp_file, "%u ", n_list);
+            }
+        }
+        fprintf(temp_file, "\n");
+
+        size_t cur_len = 0;
         for(uint n_list = 0; n_list < htable_size; n_list++){
 
             if(IsListEmpty(htable, n_list)){
-                list_lengths[n_list] = 0;
+                cur_len = 0;
             }
             else{
-                list_lengths[n_list] = htable->data[n_list]->size;
+                cur_len = htable->data[n_list]->size;
             }
 
-            fprintf(temp_file, "%lu ", list_lengths[n_list]);
+            fprintf(temp_file, "%lu ", cur_len);
         }
-        
         fprintf(temp_file, "\n");
 
         HTableRemove(htable);
     }
 
     fclose(temp_file);
-    free(list_lengths);
 
     // TODO: refactor
+
     system("python3 ../src/graphics.py");
+
+    return;
+}
+//----------------------------------------------------------------------------------------//
+
+void UseHtable(const text_storage* text, const text_storage* unique_text, const size_t hash_size){
+    
+    HTable* htable = NULL;
+    HTableInit(&htable, hash_size);
+    assert(htable != NULL);
+
+    for(uint n_elem = 0; n_elem < unique_text->n_words; n_elem++){
+        HTableInsert(htable, unique_text->p_words[n_elem].pt);
+    }
+    uint is_in_table = 0;
+    for(uint n_word = 0; n_word < text->n_words; n_word++){
+        HTableFind(htable, text->p_words[n_word].pt, &is_in_table);
+    }
 
     return;
 }

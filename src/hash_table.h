@@ -9,11 +9,18 @@ typedef struct HashTable{
     size_t size;
     size_t n_elems;
 
+    double fill_factor;
     uint (*hash_func)(const char* str);
     // количество памяти выделенное под каждый список
-    size_t total_mem_size;
+    size_t total_mem_size;  // ??
     size_t n_init_lists;
-} HTable; 
+} HTable;
+
+const double FILL_FACTOR_LIMIT = 0.6;
+
+#ifndef RESIZE_ENABLE
+    #define RESIZE_ENABLE 1
+#endif
 
 #ifndef LIST_CHECK
     #define LIST_CHECK 0

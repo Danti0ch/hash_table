@@ -78,7 +78,7 @@ static void get_log_name(char* buf, const char* path_to_logs){
     time_t rawtime = time(NULL);
     struct tm *ptm = localtime(&rawtime);
 
-    strftime(buf + strlen(buf), MAX_LOG_NAME_LEN, "%H-%M-%S(%d.%m.%Y)", ptm);
+    strftime(buf + strlen(buf), MAX_LOG_NAME_LEN, "%H-%M-%S(%d.%m.%Y).htm", ptm);
 
     return;
 }
@@ -97,12 +97,11 @@ void make_log(const char* string, ...){
 	va_list args;
 	va_start(args, string);
 
-    fprintf(log_file, "\n\n%s--%s--%s<%u>:: \n",
-        time_str, CUR_LOC.file_name, CUR_LOC.func_name, CUR_LOC.n_line);
+    //fprintf(log_file, "\n\n%s--%s--%s<%u>:: \n",
+    //    time_str, CUR_LOC.file_name, CUR_LOC.func_name, CUR_LOC.n_line);
 
     vfprintf(log_file, string, args);
 	fprintf(log_file, "\n");
-
 	va_end(args);
 
     return;

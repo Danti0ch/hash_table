@@ -5,24 +5,6 @@
 #include "hash_funcs.h"
 #include <string.h>
 
-void UseHtable(const text_storage* text, const text_storage* unique_text, const size_t hash_size){
-    
-    HTable* htable = NULL;
-    HTableInit(&htable, hash_size);
-    assert(htable != NULL);
-
-    for(uint n_elem = 0; n_elem < unique_text->n_words; n_elem++){
-        HTableInsert(htable, unique_text->p_words[n_elem].pt);
-    }
-
-    uint is_in_table = 0;
-    for(uint n_word = 0; n_word < text->n_words; n_word++){
-        HTableFind(htable, text->p_words[n_word].pt, &is_in_table);
-    }
-
-    return;
-}
-
 int main(const int argc, const char* argv[]){
     
     if(argc < 3){
@@ -63,8 +45,7 @@ int main(const int argc, const char* argv[]){
         p_words[i] = unique_text->p_words[i].pt;
     }
 
-    GetSpectralAnalysis(p_words, unique_text->n_words, hash_size, "lol");    
-    
+    GetSpectralAnalysis(p_words, unique_text->n_words, hash_size, "lol", one_image, 0);    
     
     //UseHtable(text, unique_text, hash_size);
     
