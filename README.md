@@ -27,6 +27,25 @@ void UseHtable(const text_storage* text, const text_storage* unique_text, const 
 ![изображение](https://user-images.githubusercontent.com/89589647/164607898-6ec4ef13-7ab9-40e1-ae57-782bb3ca49ed.png)
 
 Нетрудно заметить, что самыми прожорливыми являются функции get_hash, HTableFind, ListFind, __strcmp_avx2, verify htable.
+
+### оптимизация 1
+Начнём с функции get_hash. В ней по строке вычисляется хэш по алгоритму crc32.
+
+```cpp
+static uint get_hash(const char* str){
+    
+    assert(str != NULL);
+
+    uint hash = 0xFFFFFFFF;
+
+    for(uint i = 0; str[i] != 0; i++){
+
+        hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
+    }
+
+    return hash;
+}
+```
 # Спектральный анализ
 
 Проведём спектральный анализ нашей хэш таблицы на 6 хэш функциях для того, чтобы оценить их эффективность. Для этого зафиксируем размер таблицы.
