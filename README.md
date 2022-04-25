@@ -87,33 +87,36 @@ static uint get_hash(const char* str){
 
 ![изображение](https://user-images.githubusercontent.com/89589647/165024012-c7b085bc-7421-47e3-b922-a068cba354c7.png)
 
-Перепишем часть с циклом через ассемблерную вставку, чтобы уменьшить общее количество операций и также операций обращения к памяти. (Учитывая что мы писали fsctrcmp и знаем какие регистры там используются.
+Перепишем часть с циклом через ассемблерную вставку, чтобы уменьшить общее количество операций и также операций обращения к памяти. (Учитывая что мы писали fsctrcmp и знаем какие регистры там используются)
 
 ```nasm
 .intel_syntax noprefix
-			mov rcx,  0			
-			mov ebx, size			
-			mov rsi, val		
-			mov r9,  cur_node		
-			cmp_loop:				
-			mov rdi, [r9]			
-			push rdi				
-			push rsi				
-			call fstrcmp			
-			pop rsi				
-			pop rdi				
-			cmp rax, 0				
-			je found_label			
-			add r9, 0x10			
-			inc rcx				
-			cmp ecx, ebx			
-			jne cmp_loop			
-			jmp found_label		
-			found_label:			
-			mov size, eax			
-			.att_syntax prefix		
+mov rcx,  0			
+mov ebx, size			
+mov rsi, val		
+mov r9,  cur_node		
+cmp_loop:				
+mov rdi, [r9]			
+push rdi				
+push rsi				
+call fstrcmp			
+pop rsi				
+pop rdi				
+cmp rax, 0				
+je found_label			
+add r9, 0x10			
+inc rcx				
+cmp ecx, ebx			
+jne cmp_loop			
+jmp found_label		
+found_label:			
+mov res, rax			
+.att_syntax prefix		
 ```
-       
+
+![изображение](https://user-images.githubusercontent.com/89589647/165030621-0d22b4a5-ae43-4fc7-b388-e3902fa300bd.png)
+
+Программа стала быстрее на 
 ![изображение](https://user-images.githubusercontent.com/89589647/165029541-33fe32e1-aa9d-42fc-802b-b8566cb9aed4.png)
 
 # Спектральный анализ
