@@ -116,7 +116,7 @@ mov res, rax
 
 ![изображение](https://user-images.githubusercontent.com/89589647/165030621-0d22b4a5-ae43-4fc7-b388-e3902fa300bd.png)
 
-Программа стала быстрее на 
+Программа стала быстрее еще на 30%
 ![изображение](https://user-images.githubusercontent.com/89589647/165029541-33fe32e1-aa9d-42fc-802b-b8566cb9aed4.png)
 
 # Спектральный анализ
