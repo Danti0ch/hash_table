@@ -18,7 +18,7 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
     assert(temp_file != NULL);
 
     fprintf(temp_file, "%d %u\n", draw_mode, is_show);
-    fprintf(temp_file, "%lu %lu %u\n", n_elems, htable_size, N_HASH_FUNCS);
+    fprintf(temp_file, "%lu %lu %u %u\n", n_elems, htable_size, N_HASH_FUNCS/2, N_HASH_FUNCS/2);
 
     for(uint n_func = 0; n_func < N_HASH_FUNCS; n_func++){
 
@@ -57,14 +57,17 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
         fprintf(temp_file, "\n");
 
         HTableRemove(htable);
+        printf("%s loading completed\n", hash_funcs[n_func].name);
     }
 
     fclose(temp_file);
 
     // TODO: refactor
 
+    printf("attemp to execute drawing script\n");
     system("python3 ../src/graphics.py");
 
+    printf("succesful\n");
     return;
 }
 //----------------------------------------------------------------------------------------//

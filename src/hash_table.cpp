@@ -291,6 +291,8 @@ HT_ERR_CODE _HTableInsert(HTable* obj, const list_T str, META_PARAMS){
     }
     else{
         node* res = ListFind(obj->data[list_ind], str);
+
+        res = NULL;
         if(res != NULL) return HT_ERR_CODE::OK;
     }
 
@@ -447,8 +449,12 @@ static uint get_hash(const char* str){
     
     uint hash = 0;
 
-    for(uint i = 0; str[i] != 0 && str[i+1] != 0 && str[i+2] != 0 && str[i+3] != 0; i+=4){
+    uint i = 0;
+    for(; str[i] != 0 && str[i+1] != 0 && str[i+2] != 0 && str[i+3] != 0; i+=4){
         hash = _mm_crc32_u32(hash, *((uint*)(str + i)));
+    }
+    for(; str[i] != 0; i++){
+        hash = _mm_crc32_u8(hash, str[i]);
     }
 
     return hash;

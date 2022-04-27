@@ -1,42 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-"""
-from matplotlib import colors
-from matplotlib.ticker import PercentFormatter
-
-https://matplotlib.org/stable/gallery/statistics/hist.html
-
-n_bins = 10
-
-dist1 = [0, 1, 2, 3, 4, 5, 5, 5, 5, 4]
-# N is the count in each bin, bins is the lower-limit of the bin
-N, bins, patches = plt.hist(dist1, bins=n_bins)
-
-# We'll color code by height, but you could use any scalar
-fracs = N / N.max()
-
-# we need to normalize the data to 0..1 for the full range of the colormap
-norm = colors.Normalize(fracs.min(), fracs.max())
-
-# Now, we'll loop through our objects and set the color of each accordingly
-for thisfrac, thispatch in zip(fracs, patches):
-    color = plt.cm.viridis(norm(thisfrac))
-    thispatch.set_facecolor(color)
-
-# We can also normalize our inputs by the total number of counts
-plt.hist(dist1, bins=n_bins, density=True)
-
-plt.show()
-"""
-import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib import colors
 
 multiple_images = 0
 one_image       = 1
 
-def draw_bar(n_elems, htable_size, lines, n_cur_line):
+def draw_bar(n_elems, htable_size, lines, n_cur_line, y_lim):
     fig = plt.figure(figsize=(14, 7))
 
     axes = []
@@ -68,15 +37,15 @@ def draw_bar(n_elems, htable_size, lines, n_cur_line):
     return n_cur_line
 
 
-def draw_multiple_bar(n_elems, htable_size, n_hashs, lines):
+def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
     fig = plt.figure(figsize=(14,7))
 
     axes = []
-    half_n_hashs = int((n_hashs + 2)/ 3)
+    half_n_hashs = int((n_hashs_low + n_hashs_high + 2)/ 3)
 
     n_cur_line = 2
 
-    for n_hash in range(n_hashs):
+    for n_hash in range(n_hashs_low + n_hashs_high):
 
         data = list(map(int, lines[n_cur_line + 2].split()))
         lists_len = list(map(int, lines[n_cur_line + 3].split()))
@@ -90,21 +59,36 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs, lines):
         descr += 'average: '  + str(round(float(sum(nonzero_lens) / len(nonzero_lens)), 1))
 
         axes[n_hash].set_title(lines[n_cur_line] + descr, loc='left', pad = 1.01)
-        #axes[n_hash].set_ylim([0, max(data)])
+        
+        #if(max(data) < 10):
+        #    axes[n_hash].bar([i for i in range(8)], lists_len[:8], color=['yellow'], width=0.03)
+        #    n_cur_line += 4
 
-        #axes[n_hash].set_ylim([0, max(data)])
-        # skip name and description
-        n_cur_line += 4
-        print(len(data))
-        N, bins, patches = axes[n_hash].hist(data, bins=int(int(len(data))/50), align='left', bottom=0.5)
-        fracs = N / N.max()
+    
+        if(n_hash < n_hashs_low):
+            axes[n_hash].bar([i for i in range(160)], lists_len[:160], color=['black'], width=0.52)
+            axes[n_hash].set_xlim([-1, 128])
+            axes[n_hash].set_ylim([0, 7000])
+            
+        else:
+            N, bins, patches = axes[n_hash].hist(data, bins=int(int(len(data))/50), align='left', bottom=0.5)
+            axes[n_hash].set_xlim([-1, 8192])   
+            axes[n_hash].set_ylim([0, 300])   
+            
+            # skip name and description
 
-        norm = colors.Normalize(fracs.min(), fracs.max())
+            print(len(data))
+            fracs = N / N.max()
 
-        for thisfrac, thispatch in zip(fracs, patches):
-            color = plt.cm.viridis(norm(thisfrac))
-            thispatch.set_facecolor(color)
+            norm = colors.Normalize(fracs.min(), fracs.max())
 
+            for thisfrac, thispatch in zip(fracs, patches):
+                color = plt.cm.viridis(norm(thisfrac))
+                thispatch.set_facecolor(color)
+        n_cur_line+=4
+            
+        
+    fig.tight_layout()
     plt.subplots_adjust(hspace = 0.4)
 
 def main():
@@ -113,19 +97,24 @@ def main():
     input_file.close()
 
     draw_mode, is_show = list(map(int, lines[0].split()))
-    n_elems, htable_size, n_hashs = list(map(int, lines[1].split()))
+    n_elems, htable_size, n_hashs_low, n_hash_high = list(map(int, lines[1].split()))
 
     if(draw_mode == one_image):
-        draw_multiple_bar(n_elems, htable_size, n_hashs, lines)
+        draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hash_high, lines)
         if(is_show):
             plt.show()
         plt.savefig('bars.png')
 
     elif(draw_mode == multiple_images):
         n_cur_line = 2
-        for i in range(n_hashs):
+        for i in range(n_hashs_low):
             n_init_line = n_cur_line
-            n_cur_line = draw_bar(n_elems, htable_size, lines, n_cur_line)
+            n_cur_line = draw_bar(n_elems, htable_size, lines, n_cur_line, 100)
+            if(is_show):
+                plt.show()
+        for i in range(n_hashs_high):
+            n_init_line = n_cur_line
+            n_cur_line = draw_bar(n_elems, htable_size, lines, n_cur_line, 8000)
             if(is_show):
                 plt.show()
         plt.savefig(str(n_init_line) + '.png')

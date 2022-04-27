@@ -450,31 +450,6 @@ LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 //----------------------------------------------------------------------------------------//
 
 
-/*
-
-	uint size = obj->size;
-	int temp = 0;
-	for(uint n_node = 0; n_node < size; n_node++){
-		printf("%u\n", n_node);
-		asm(".intel_syntax noprefix\n\t" // директива GAS, включаем Intel синтаксис.
-			"mov rdi, %1\n\t"            // прибавляем значение переменной b к eax.
-			"mov rsi, %2\n\t"            // перемещаем в переменную c значение eax.
-			".att_syntax prefix\n\t"
-			"call fstrcmp\n\t"
-			".intel_syntax noprefix\n\t"
-			"mov %0, eax\n\t"
-			".att_syntax prefix\n\t"
-			:"=r"(temp)
-			:"r"(cur_node[n_node].val), "r"(val), "r"(cur_node + n_node)
-			: "rdi", "rsi", "rax",  "rdx", "rbx"                     // список разрушаемых регистров.
-			);
-		asm(".att_syntax prefix\n\t");
-		if(temp == 0){
-			return cur_node + n_node;
-		}
-	}
-*/
-
 node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 	
 	LIST_OK(obj)
@@ -488,10 +463,45 @@ node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 #if ENABLE_SORT
 
 	uint size = obj->size;
+	node* res = NULL;
 
-	for(uint n_node = 0; n_node < size; n_node++){
-		if(fstrcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
-	}
+	asm(".intel_syntax noprefix\n\t"
+			"mov rcx,  0			\n\t"
+			"mov ebx, %1			\n\t"
+			"mov rsi, %2			\n\t"
+			"mov r9, 	%3			\n\t"
+			"cmp_loop:				\n\t"
+			"mov rdi, [r9]			\n\t"
+			"push rdi				\n\t"
+			"push rsi				\n\t"
+			"call fstrcmp			\n\t"
+			"pop rsi				\n\t"
+			"pop rdi				\n\t"
+			"cmp rax, 0				\n\t"
+			"je found_label			\n\t"
+			"add r9, 0x10			\n\t"
+			"inc rcx				\n\t"
+			"cmp ecx, ebx			\n\t"
+			"jne cmp_loop			\n\t"
+			"jmp ending_cmp			\n\t"
+			"found_label:			\n\t"
+			"mov %0, r9			\n\t"
+			"ending_cmp:			\n\t"
+			".att_syntax prefix		\n\t"
+
+			:"=r"(res)
+			:"r"(size), "r"(val), "r"(cur_node)
+			: "rdi", "rsi", "rax",  "rdx", "rbx", "rcx"
+			);
+		asm(".att_syntax prefix\n\t");
+		
+		return res;
+		//uint size = obj->size;
+
+		//for(uint n_node = 0; n_node < size; n_node++){
+		//	if(fstrcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
+		//}
+	
 #else
 	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){
 		if(strcmp(cur_node->val, val) == 0) return cur_node;

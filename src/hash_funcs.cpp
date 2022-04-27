@@ -78,7 +78,7 @@ uint HashReturn0(const char* str){
 
     assert(str != NULL);
 
-    return 0;
+    return 1;
 }
 //----------------------------------------------------------------------------------------//
 
@@ -87,6 +87,19 @@ uint  HashFirstChar(const char* str){
     assert(str != NULL);
 
     return (uint)(str[0]);
+}
+//----------------------------------------------------------------------------------------//
+
+uint HashStrLen(const char* str){
+
+    assert(str != NULL);
+    
+    uint len = 0;
+    for(; str[len] != 0 && len < MAX_STR_LEN; len++){
+        ;
+    }
+
+    return len;
 }
 //----------------------------------------------------------------------------------------//
 
@@ -101,19 +114,6 @@ uint HashCheckSum(const char* str){
     }
 
     return sum;
-}
-//----------------------------------------------------------------------------------------//
-
-uint HashStrLen(const char* str){
-
-    assert(str != NULL);
-    
-    uint len = 0;
-    for(; str[len] != 0 && len < MAX_STR_LEN; len++){
-        ;
-    }
-
-    return len;
 }
 //----------------------------------------------------------------------------------------//
 
