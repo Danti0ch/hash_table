@@ -66,7 +66,7 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
 
     
         if(n_hash < n_hashs_low):
-            axes[n_hash].bar([i for i in range(160)], lists_len[:160], color=['black'], width=0.52)
+            axes[n_hash].bar([i for i in range(160)], lists_len[:160],  width=0.52)
             axes[n_hash].set_xlim([-1, 128])
             axes[n_hash].set_ylim([0, 7000])
             
@@ -77,14 +77,13 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
             
             # skip name and description
 
-            print(len(data))
             fracs = N / N.max()
 
             norm = colors.Normalize(fracs.min(), fracs.max())
 
-            for thisfrac, thispatch in zip(fracs, patches):
-                color = plt.cm.viridis(norm(thisfrac))
-                thispatch.set_facecolor(color)
+            #for thisfrac, thispatch in zip(fracs, patches):
+            #    color = plt.cm.viridis(norm(thisfrac))
+            #    thispatch.set_facecolor(color)
         n_cur_line+=4
             
         

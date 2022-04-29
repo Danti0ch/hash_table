@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <limits.h>
 const int INCREASE_RATIO = 1;
 const int REDUCE_RATIO   = 3;
 
@@ -150,6 +150,11 @@ LIST_ERR_CODE _ListDestructor(list* obj, META_PARAMS){
 	assert(obj != NULL);
 	LIST_OK(obj)
 
+	for(uint i = 0; i < obj->capacity; i++){
+		if(obj->nodes[i].val != POISON_VAL){
+			free(obj->nodes[i].val);
+		}
+	}
 	free(obj->nodes);
 	free(obj);
 
@@ -296,7 +301,12 @@ LIST_ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 	}
 
 	obj->tail = new_tail_pos;
-	obj->nodes[obj->tail].val = val;
+    //(*obj)->buffer          = (aligned_alloc*)calloc(ALIGN_RATIO, size * ALIGN_RATIO * sizeof(char));
+
+	obj->nodes[obj->tail].val = (list_T)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * sizeof(char));
+	memset(obj->nodes[obj->tail].val, 0, ALIGN_RATIO);
+
+	strcpy(obj->nodes[obj->tail].val, val);
 
 	if(obj->size == 0){
 		obj->head = new_tail_pos;
@@ -450,63 +460,53 @@ LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 //----------------------------------------------------------------------------------------//
 
 
+				//"mov rax, 0xFF				\n\t"
+				//"movq xmm0, rax				\n\t"
+				//"vpbroadcastb ymm0, xmm0		\n\t"
+
+				//"vptest ymm2, ymm0				\n\t"
+				//"jc equal						\n\t"
+
 node* _ListFind(const list* obj, const list_T val, META_PARAMS){
 	
 	LIST_OK(obj)
 
-	if(obj->size == 0) return NULL;
-
 	node* cur_node = obj->nodes + obj->head;
 
-	// TODO: sort + strcmp on asm to optimize
+	uint size = obj->size;
 
 #if ENABLE_SORT
-
-	uint size = obj->size;
-	node* res = NULL;
-
-	asm(".intel_syntax noprefix\n\t"
-			"mov rcx,  0			\n\t"
-			"mov ebx, %1			\n\t"
-			"mov rsi, %2			\n\t"
-			"mov r9, 	%3			\n\t"
-			"cmp_loop:				\n\t"
-			"mov rdi, [r9]			\n\t"
-			"push rdi				\n\t"
-			"push rsi				\n\t"
-			"call fstrcmp			\n\t"
-			"pop rsi				\n\t"
-			"pop rdi				\n\t"
-			"cmp rax, 0				\n\t"
-			"je found_label			\n\t"
-			"add r9, 0x10			\n\t"
-			"inc rcx				\n\t"
-			"cmp ecx, ebx			\n\t"
-			"jne cmp_loop			\n\t"
-			"jmp ending_cmp			\n\t"
-			"found_label:			\n\t"
-			"mov %0, r9			\n\t"
-			"ending_cmp:			\n\t"
-			".att_syntax prefix		\n\t"
-
-			:"=r"(res)
-			:"r"(size), "r"(val), "r"(cur_node)
-			: "rdi", "rsi", "rax",  "rdx", "rbx", "rcx"
-			);
-		asm(".att_syntax prefix\n\t");
-		
-		return res;
-		//uint size = obj->size;
-
-		//for(uint n_node = 0; n_node < size; n_node++){
-		//	if(fstrcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
-		//}
-	
+	for(uint n_node = 0; n_node < size; n_node++){
 #else
 	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){
-		if(strcmp(cur_node->val, val) == 0) return cur_node;
+#endif //ENABLE_SORT
+
+		#if OPTIMIZE_DISABLE
+			if(strcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
+		#else
+			uint res =0;
+			
+			asm(
+				".intel_syntax noprefix			\n\t"
+				
+				"vmovdqa ymm0, [%1]				\n\t"
+				"vmovdqa ymm1, [%2]				\n\t"
+				"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
+				
+				"vpmovmskb	rax, ymm2			\n\t"
+				""
+				".att_syntax prefix				\n\t"
+
+				:"=r"(res)
+				:"r"(cur_node[n_node].val), "r"(val)
+				:"ymm0", "ymm1", "ymm2", "rax"
+			);
+			
+			if(res == 0xFFFFFFFF) return cur_node + n_node;
+		#endif	// OPTIMIZE_DISABLE
 	}
-#endif // ENABLE_SORT
+	
+
 	return NULL;
 }
 //----------------------------------------------------------------------------------------//

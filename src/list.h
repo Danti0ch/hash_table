@@ -9,6 +9,10 @@
 
 typedef unsigned int uint;
 
+#ifndef OPTIMIZE_DISABLE
+    #define OPTIMIZE_DISABLE 0
+#endif
+
 // TODO: insert after/be4
 
 // при верификации проверяются все элементы списка
@@ -145,6 +149,7 @@ struct list{
 
 list*  _ListConstructor(const size_t capacity, LOC_PARAMS);
 
+const uint ALIGN_RATIO = 32;
 LIST_ERR_CODE  _ListDestructor(list* obj, META_PARAMS);
 
 /**

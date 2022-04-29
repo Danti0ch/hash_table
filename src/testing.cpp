@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
 
 // TODO: посмотреть про функциональные языки
 // TODO: assert -> обработчик ошибок
@@ -26,13 +27,17 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
         fprintf(temp_file, "%s\n", hash_funcs[n_func].descr);
 
         HTable* htable = NULL;
+
         HTableInitCustomHash(&htable, htable_size, hash_funcs[n_func].p_func);
+        
         assert(htable != NULL);
 
+        uint start = clock();
         for(uint n_elem = 0; n_elem < n_elems; n_elem++){
-
             HTableInsert(htable, data[n_elem]);
         }
+
+        printf("insertion finished\n");
 
         for(uint n_list = 0; n_list < htable_size; n_list++){
             if(IsListEmpty(htable, n_list)) continue;
@@ -43,6 +48,7 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
         fprintf(temp_file, "\n");
 
         size_t cur_len = 0;
+
         for(uint n_list = 0; n_list < htable_size; n_list++){
 
             if(IsListEmpty(htable, n_list)){
@@ -64,7 +70,7 @@ void GetSpectralAnalysis(const list_T* data, const size_t n_elems, const size_t 
 
     // TODO: refactor
 
-    printf("attemp to execute drawing script\n");
+    printf("attempt to execute drawing script\n");
     system("python3 ../src/graphics.py");
 
     printf("succesful\n");
@@ -81,7 +87,9 @@ void UseHtable(const text_storage* text, const text_storage* unique_text, const 
     for(uint n_elem = 0; n_elem < unique_text->n_words; n_elem++){
         HTableInsert(htable, unique_text->p_words[n_elem].pt);
     }
+
     uint is_in_table = 0;
+
     for(uint n_word = 0; n_word < text->n_words; n_word++){
         HTableFind(htable, text->p_words[n_word].pt, &is_in_table);
     }

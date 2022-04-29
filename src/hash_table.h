@@ -9,6 +9,11 @@ typedef struct HashTable{
     size_t size;
     size_t n_elems;
 
+    //char* buffer;
+    //list* buf_free_vals;
+
+    list* bwords;
+
     double fill_factor;
     uint (*hash_func)(const char* str);
     // количество памяти выделенное под каждый список
@@ -17,6 +22,14 @@ typedef struct HashTable{
 } HTable;
 
 const double FILL_FACTOR_LIMIT = 0.6;
+
+#ifndef CUSTOM_HASH_ENABLE
+    #define CUSTOM_HASH_ENABLE 1
+#endif
+
+#ifndef OPTIMIZE_DISABLE
+    #define OPTIMIZE_DISABLE 0
+#endif
 
 #ifndef RESIZE_ENABLE
     #define RESIZE_ENABLE 1
@@ -79,10 +92,14 @@ enum class HT_ERR_CODE{
 #define HTableRemove(obj)               _HTableRemove((obj), #obj, LOCATION)
 #define GetSize(obj, dest)              _HTableGetSize(obj, (dest), #obj, LOCATION)
 
-#define HTableInitCustomHash(obj, size, func)     _HTableInitCustomHash((obj), (size), (func), LOCATION)
-
+#if CUSTOM_HASH_ENABLE
+    #define HTableInitCustomHash(obj, size, func)     _HTableInitCustomHash((obj), (size), (func), LOCATION)
+#endif
 HT_ERR_CODE     _HTableInit(HTable** obj, const size_t size, LOC_PARAMS);
-HT_ERR_CODE     _HTableInitCustomHash(HTable** obj, const size_t size, uint (*p_func)(const char* str), LOC_PARAMS);
+#if CUSTOM_HASH_ENABLE
+    HT_ERR_CODE     _HTableInitCustomHash(HTable** obj, const size_t size, uint (*p_func)(const char* str), LOC_PARAMS);
+#endif
+
 HT_ERR_CODE     _HTableFind(const HTable* obj, const list_T str, uint* is_in_table, META_PARAMS);
 HT_ERR_CODE     _HTableInsert(HTable* obj, const list_T str, META_PARAMS);
 void            _HTableRemove(HTable* obj, META_PARAMS);

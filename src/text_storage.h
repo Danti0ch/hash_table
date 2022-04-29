@@ -47,7 +47,7 @@ enum err_code{
     EMPTY_FILE,
 };
 
-const uint MAX_N_WORDS_IN_LINE = 10000;
+const uint MAX_N_WORDS_IN_LINE  = 10000;
 
 /**
  * @brief считываем содержимое файла в структуру text_storage

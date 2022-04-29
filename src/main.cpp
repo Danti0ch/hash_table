@@ -1,15 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "testing.h"
-#include "text_storage.h"
-#include "hash_funcs.h"
 #include <string.h>
+#include <time.h>
+#include "text_storage.h"
+#include "testing.h"
+#include <limits.h>
+// __volatile__ ?
 
 int main(const int argc, const char* argv[]){
     
     if(argc < 3){
-        //TODO:
-        printf("format should be ...\n");
+        printf("format should be: ./main file_name hash_init_size\n");
         return 0;
     }
 
@@ -30,25 +31,28 @@ int main(const int argc, const char* argv[]){
     }
 
     text_storage* text = GetStorage(argv[1]);
+
     if(text == NULL){
-        //  TODO: нужна обработка других ошибок 
         printf("unable to open %s\n", argv[1]);
         return 0;
     }
     
     text_storage* unique_text = GetStorage("unique_words.txt");
-    
-    
+
     char** p_words = (char**)calloc(unique_text->n_words, sizeof(char**));
 
     for(int i = 0; i < unique_text->n_words; i++){
-        p_words[i] = unique_text->p_words[i].pt;
+        p_words[i] = unique_text->p_words[i].pt;        
     }
 
-    GetSpectralAnalysis(p_words, unique_text->n_words, hash_size, "lol", one_image, 0);    
+    uint start_time = clock();
+    for(uint i = 0; i < 50; i++){
+        UseHtable(text, unique_text, hash_size);
+    }
+
+    uint delt = (uint)clock() - start_time;
     
-    //UseHtable(text, unique_text, hash_size);
-    
+    printf("total_time: %u\n", delt);
     LogClose();
     return 0;
 }

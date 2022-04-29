@@ -6,6 +6,7 @@
 
 #include "text_storage.h"
 #include <ctype.h>
+#include "list.h"
 
 //----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
 
@@ -38,6 +39,11 @@ static char* generate_buffer(const word* p_words, const size_t n_words, size_t* 
 
 void construct_auxil_arrays(text_storage* storage);
 
+static void align_words(text_storage* storage);
+
+size_t get_align_buf_size(text_storage* storage);
+
+
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
 text_storage* text_storage_init(const size_t buf_size, const size_t n_lines, const size_t n_words){
@@ -67,9 +73,13 @@ text_storage* GetStorage(const char *file_name){
     assert(file_name != NULL);
 
     size_t n_lines = 0, buf_size = 0, n_words = 0;
+
+    
+
     get_file_metadata(file_name, &n_lines, &buf_size, &n_words);
 
     text_storage* storage = text_storage_init(buf_size, n_lines, n_words);
+    
 
     //if(mem_for_storage_result != OK)    assert(0);
 
@@ -82,6 +92,8 @@ text_storage* GetStorage(const char *file_name){
     fclose(input_file);
 
     construct_auxil_arrays(storage);
+    
+    align_words(storage);
 
     return storage;
 }
@@ -334,10 +346,14 @@ void construct_auxil_arrays(text_storage* storage){
 
     storage->buffer[storage->len_buf - 1] = '\n';
 
+    uint    n_lines         = storage->n_lines;
     uint    n_line          = 0;
     uint    n_word          = 0;
     uint    n_symbs_in_line = 0;
     uint    n_words_in_line = 0;
+
+    storage->p_lines[n_line].p_words = storage->p_words;
+    storage->p_lines[n_line].p_line  = storage->buffer;
 
     for(int ind_buf = 0; ind_buf < storage->len_buf; ind_buf++){
 
@@ -353,6 +369,7 @@ void construct_auxil_arrays(text_storage* storage){
             cur_word_len = ind_buf - cur_word_len;
             
             storage->p_words[n_word].len = cur_word_len;
+
             n_word++;
         }
 
@@ -368,6 +385,11 @@ void construct_auxil_arrays(text_storage* storage){
             n_words_in_line = n_word;
             n_symbs_in_line = ind_buf + 1;
             n_line++;
+
+            if(n_line < n_lines){
+                storage->p_lines[n_line].p_words = storage->p_words + n_word;
+                storage->p_lines[n_line].p_line  = storage->buffer  + ind_buf + 1;
+            }
         }
 
         // space symb handler
@@ -408,5 +430,97 @@ void get_buffer_metadata(const char* buffer, const size_t buf_size, size_t* n_li
     }
 
     return;
+}
+//----------------------------------------------------------------------------------------//
+
+// TODO: line len fix
+static void align_words(text_storage* storage){
+
+    assert(storage != NULL);
+
+    size_t new_len_buf = get_align_buf_size(storage);
+
+    char* align_buffer  = (char*)aligned_alloc(ALIGN_RATIO, new_len_buf * sizeof(char));
+    
+    memset(align_buffer, 0, new_len_buf * sizeof(char));
+    
+    char* p_align       = align_buffer;
+    uint n_lines        = storage->n_lines;
+
+    uint total_nwords = 0;
+
+    uint total_w = 0;
+
+    for(uint n_line = 0; n_line < n_lines; n_line++){
+
+        line_storage* cur_line = storage->p_lines + n_line;
+
+        cur_line->p_line    = p_align;
+
+        uint n_words        = cur_line->n_words;
+        uint total_line_nwords = 0;
+        
+        // TODO: не обновляем len
+        for(uint n_word = 0; n_word < n_words; n_word++){
+            
+            size_t cur_len = cur_line->p_words[n_word].len;
+            
+            // TODO: fix
+            // если длина слова больше 32, то мы его не обрабатываем
+            if(cur_len + 1 >= ALIGN_RATIO){
+                continue;
+            }
+
+            strncpy(p_align, cur_line->p_words[n_word].pt, cur_len);
+
+            uint offset = 0;
+            if((cur_len + 1) % ALIGN_RATIO != 0){
+                offset = ALIGN_RATIO - ((cur_len + 1) % ALIGN_RATIO);
+            }
+
+            storage->p_words[total_w].pt  = p_align;
+            storage->p_words[total_w].len = cur_len;
+
+            p_align += offset + cur_len + 1;
+            total_line_nwords++;
+            total_w++;
+        }
+
+        cur_line->p_words   = storage->p_words + total_nwords;
+
+        total_nwords+= total_line_nwords;
+        storage->p_lines[n_line].n_words = total_line_nwords;
+    }
+
+    //free(storage->buffer);
+
+    storage->buffer     = align_buffer;
+    storage->len_buf    = new_len_buf;
+    storage->n_words    = total_nwords;
+
+    return;
+}
+///----------------------------------------------------------------------------------------//
+
+size_t get_align_buf_size(text_storage* storage){
+
+    assert(storage != NULL);
+
+    uint n_words = storage->n_words;
+
+    size_t len = 0;
+
+    for(uint n_word = 0; n_word < n_words; n_word++){
+            
+        size_t  cur_len     = storage->p_words[n_word].len;
+        uint    offset      = 0;
+        if((cur_len + 1) % ALIGN_RATIO != 0){
+                offset = ALIGN_RATIO - ((cur_len + 1) % ALIGN_RATIO);
+        }
+        
+        len += cur_len + 1 + (size_t)offset;
+    }
+
+    return len;
 }
 //----------------------------------------------------------------------------------------//

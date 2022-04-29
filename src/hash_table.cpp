@@ -7,17 +7,7 @@
 #include <string.h>
 
 static list* LST_POISON = (list*)123;
-
-//                  I PART                       
-// TODO: readme?                                            
-
-//                  II PART
-// TODO: запустить профайлер                            
-// TODO: оптимизировать функции, которые больше всех жрут
-
-// TODO: желательно поменториться у кого-нибудь
-// TODO: (опционально) улучшить изображение гистограмм
-// TODO: усилить модуль логирования
+// TODO: readme
 
 const int INCREASE_RATIO = 1;
 
@@ -209,7 +199,7 @@ HT_ERR_CODE _HTableInit(HTable** obj, const size_t size, LOC_PARAMS){
     (*obj)->fill_factor     = 0;
     (*obj)->total_mem_size  = 0;
     (*obj)->n_init_lists    = 0;
-
+    
     for(uint n_list = 0; n_list < size; n_list++){
         (*obj)->data[n_list] = LST_POISON;
     }
@@ -292,7 +282,6 @@ HT_ERR_CODE _HTableInsert(HTable* obj, const list_T str, META_PARAMS){
     else{
         node* res = ListFind(obj->data[list_ind], str);
 
-        res = NULL;
         if(res != NULL) return HT_ERR_CODE::OK;
     }
 
@@ -447,18 +436,21 @@ static void htable_dump(const HTable* obj, meta_info* meta, META_PARAMS){
 
 static uint get_hash(const char* str){
     
-    uint hash = 0;
+    assert(str != NULL);
 
-    uint i = 0;
-    for(; str[i] != 0 && str[i+1] != 0 && str[i+2] != 0 && str[i+3] != 0; i+=4){
-        hash = _mm_crc32_u32(hash, *((uint*)(str + i)));
-    }
-    for(; str[i] != 0; i++){
-        hash = _mm_crc32_u8(hash, str[i]);
-    }
+    #if OPTIMIZE_DISABLE
+        uint hash = 0xFFFFFFFF;
+
+        for(uint i = 0; str[i] != 0; i++){
+
+            hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
+        }
+    #else
+        uint hash = _mm_crc32_u32(0xFFFFFFFF, *((uint*)(str)));
+    #endif  // OPTIMIZE_DISABLE
 
     return hash;
-}
+}   
 //----------------------------------------------------------------------------------------//
 
 static uint fill_factor_excess(double fill_factor){
