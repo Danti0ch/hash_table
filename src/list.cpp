@@ -150,11 +150,6 @@ LIST_ERR_CODE _ListDestructor(list* obj, META_PARAMS){
 	assert(obj != NULL);
 	LIST_OK(obj)
 
-	for(uint i = 0; i < obj->capacity; i++){
-		if(obj->nodes[i].val != POISON_VAL){
-			free(obj->nodes[i].val);
-		}
-	}
 	free(obj->nodes);
 	free(obj);
 
@@ -303,10 +298,12 @@ LIST_ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 	obj->tail = new_tail_pos;
     //(*obj)->buffer          = (aligned_alloc*)calloc(ALIGN_RATIO, size * ALIGN_RATIO * sizeof(char));
 
-	obj->nodes[obj->tail].val = (list_T)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * sizeof(char));
-	memset(obj->nodes[obj->tail].val, 0, ALIGN_RATIO);
+	//obj->nodes[obj->tail].val = (list_T)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * sizeof(char));
+	//memset(obj->nodes[obj->tail].val, 0, ALIGN_RATIO);
 
-	strcpy(obj->nodes[obj->tail].val, val);
+	//strcpy(obj->nodes[obj->tail].val, val);
+
+	obj->nodes[obj->tail].val = val;
 
 	if(obj->size == 0){
 		obj->head = new_tail_pos;

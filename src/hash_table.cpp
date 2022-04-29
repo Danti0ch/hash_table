@@ -169,6 +169,8 @@ static uint          fill_factor_excess(double fill_factor);
 HT_ERR_CODE          resize(HTable* obj);
 HT_ERR_CODE          transfuse_data(HTable* dest, const HashTable* src);
 static void          htable_swap(HTable* obj1, HTable* obj2);
+static uint          extract_free_place(HTable* obj);
+static void          resize_buffer(HTable* obj);
 
 //========================================================================================//
 
@@ -193,16 +195,38 @@ HT_ERR_CODE _HTableInit(HTable** obj, const size_t size, LOC_PARAMS){
         return HT_ERR_CODE::UNABLE_ALLOC_MEM;
     }
 
+    (*obj)->buffer = (char*)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * size * sizeof(char));
+    if((*obj)->buffer == NULL){
+        free(*obj);
+        free((*obj)->data);
+        return HT_ERR_CODE::UNABLE_ALLOC_MEM;
+    }
+
+    memset((*obj)->buffer, 0, size);
+
+    (*obj)->buf_free_vals = (uint*)calloc(size, sizeof(uint));
+    if((*obj)->buf_free_vals == NULL){
+        free(*obj);
+        free((*obj)->data);
+        free((*obj)->buffer);
+        return HT_ERR_CODE::UNABLE_ALLOC_MEM;
+    }
+
     (*obj)->size            = size;
     (*obj)->n_elems         = 0;
     (*obj)->hash_func       = get_hash;
     (*obj)->fill_factor     = 0;
     (*obj)->total_mem_size  = 0;
     (*obj)->n_init_lists    = 0;
-    
+    (*obj)->n_words         = size;
+
     for(uint n_list = 0; n_list < size; n_list++){
         (*obj)->data[n_list] = LST_POISON;
     }
+    for(uint n_word = 0; n_word < size; n_word++){
+        (*obj)->buf_free_vals[n_word] = n_word + 1;
+    }
+    (*obj)->buf_free_vals[size - 1] = -1;
 
     return HT_ERR_CODE::OK;
 }
@@ -225,16 +249,37 @@ HT_ERR_CODE _HTableInitCustomHash(HTable** obj, const size_t size, uint (*p_func
         return HT_ERR_CODE::UNABLE_ALLOC_MEM;
     }
 
+    (*obj)->buffer = (char*)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * size * sizeof(char));
+    if((*obj)->buffer == NULL){
+        free(*obj);
+        free((*obj)->data);
+        return HT_ERR_CODE::UNABLE_ALLOC_MEM;
+    }
+    memset((*obj)->buffer, 0, size);
+
+    (*obj)->buf_free_vals = (uint*)calloc(size, sizeof(uint));
+    if((*obj)->buf_free_vals == NULL){
+        free(*obj);
+        free((*obj)->data);
+        free((*obj)->buffer);
+        return HT_ERR_CODE::UNABLE_ALLOC_MEM;
+    }
+
     (*obj)->size            = size;
     (*obj)->n_elems         = 0;
     (*obj)->hash_func       = p_func;
     (*obj)->fill_factor     = 0;
     (*obj)->total_mem_size  = 0;
     (*obj)->n_init_lists    = 0;
-        
+    (*obj)->n_words         = size;
+
     for(uint n_list = 0; n_list < size; n_list++){
         (*obj)->data[n_list] = LST_POISON;
     }
+    for(uint n_word = 0; n_word < size; n_word++){
+        (*obj)->buf_free_vals[n_word] = n_word + 1;
+    }
+    (*obj)->buf_free_vals[size - 1] = -1;
 
     return HT_ERR_CODE::OK;
 }
@@ -285,9 +330,13 @@ HT_ERR_CODE _HTableInsert(HTable* obj, const list_T str, META_PARAMS){
         if(res != NULL) return HT_ERR_CODE::OK;
     }
 
-    PushBack(obj->data[list_ind], str);
+    uint position = extract_free_place(obj);
+
+    strcpy(obj->buffer + position, str);
+
+    PushBack(obj->data[list_ind], obj->buffer + position);
     obj->n_elems++;
-    
+
     #if RESIZE_ENABLE
         obj->fill_factor = (double)obj->n_elems / (double)obj->size;
         
@@ -311,6 +360,8 @@ void _HTableRemove(HTable* obj, META_PARAMS){
         }
     }
 
+    free(obj->buf_free_vals);
+    free(obj->buffer);
     free(obj->data);
     free(obj);
 
@@ -517,6 +568,80 @@ static void htable_swap(HTable* obj1, HTable* obj2){
     *obj2       = temp;
 
     return;
+}
+//----------------------------------------------------------------------------------------//
+
+static void resize_buffer(HTable* obj){
+
+    assert(obj != NULL);
+
+    size_t new_size = ALIGN_RATIO * obj->n_words * 2;
+    char* new_buffer = (char*)aligned_alloc(ALIGN_RATIO, new_size);
+    assert(new_buffer != NULL);
+
+    memset(new_buffer, 0, new_size);
+    for(uint n_list = 0; n_list < obj->size; n_list++){
+
+        list* cur_list = obj->data[n_list];
+        if(cur_list == LST_POISON) continue;
+
+        size_t list_size = cur_list->size;
+
+        for(uint n_word = 0; n_word < list_size; n_word++){
+            
+            cur_list->nodes[n_word].val = new_buffer + (uint)((char*)cur_list->nodes[n_word].val - obj->buffer);
+        }
+    }
+
+    memcpy(new_buffer, obj->buffer, obj->n_words * ALIGN_RATIO);
+
+    uint* new_free_vals = (uint*)calloc(obj->n_words * 2, sizeof(uint));
+    assert(new_free_vals != NULL);
+
+    memcpy(new_free_vals, obj->buf_free_vals, obj->n_words);
+
+    size_t n_words = obj->n_words;
+    for(uint i = n_words; i < n_words * 2; i++){
+        new_free_vals[i] = i+1;
+    }
+    new_free_vals[n_words * 2 - 1] = -1;
+
+    if(obj->free_head == -1){
+        obj->free_head = obj->n_words;
+    }
+    else{
+        obj->buf_free_vals[obj->free_tail] = obj->n_words;
+    }
+    obj->free_tail = obj->n_words * 2 - 1;
+
+    free(obj->buffer);
+    free(obj->buf_free_vals);
+
+    obj->buffer = new_buffer;
+    obj->buf_free_vals = new_free_vals;
+
+    return;
+}
+//----------------------------------------------------------------------------------------//
+
+static uint extract_free_place(HTable* obj){
+
+    assert(obj != NULL);
+
+    if(obj->free_head == -1){
+        resize_buffer(obj);
+    }
+    if(obj->buf_free_vals[obj->free_head] == -1){
+        resize_buffer(obj);
+    }
+
+    uint n_elem = obj->free_head;
+
+    uint next_elem_ind = obj->buf_free_vals[obj->free_head];
+    obj->buf_free_vals[obj->free_head] = -1;
+    obj->free_head = next_elem_ind;
+
+    return n_elem * ALIGN_RATIO;
 }
 //----------------------------------------------------------------------------------------//
 

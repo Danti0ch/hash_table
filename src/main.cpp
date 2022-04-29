@@ -45,10 +45,12 @@ int main(const int argc, const char* argv[]){
         p_words[i] = unique_text->p_words[i].pt;        
     }
 
+    GetSpectralAnalysis(p_words, unique_text->n_words, hash_size, "lol", one_image, 0);
+
     uint start_time = clock();
-    for(uint i = 0; i < 50; i++){
-        UseHtable(text, unique_text, hash_size);
-    }
+    //for(uint i = 0; i < 50; i++){
+    //    UseHtable(text, unique_text, hash_size);
+    //}
 
     uint delt = (uint)clock() - start_time;
     

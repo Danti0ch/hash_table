@@ -9,8 +9,12 @@ typedef struct HashTable{
     size_t size;
     size_t n_elems;
 
-    //char* buffer;
-    //list* buf_free_vals;
+    char* buffer;
+    size_t n_words;
+    
+    uint* buf_free_vals;
+    uint free_tail;
+    uint free_head;
 
     list* bwords;
 
