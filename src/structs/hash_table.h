@@ -4,41 +4,49 @@
 #include "list.h"
 
 struct aux_list{
-    uint* data;
-    uint  tail;
-    uint  head;
+    int* data;
+    int  tail;
+    int  head;
 };
 
 typedef struct HashTable{
 
-    list** lists;
-    size_t n_lists;
-    size_t n_elems;
+    list**      lists;
+    size_t      n_lists;
+    size_t      n_keys;
 
-    char*  buffer;
-    size_t n_words;
+    char*       key_buffer;
+    int*        values;
+    size_t      n_reserved;    // n_buf_elems * ALIGN_RATIO = key_buffer size
 
-    aux_list pos_free;
+    aux_list    pos_free;
 
-    list* bwords;
+    list*       bwords;
+    
+    double      fill_factor;
+    uint        (*hash_func)(const char* str);
 
-    double fill_factor;
-    uint (*hash_func)(const char* str);
-
-    size_t n_init_lists;
-
+    size_t      n_init_lists;
     // количество памяти выделенное под каждый список
     //    size_t total_mem_size;  // ??
 } HTable;
 
-const double FILL_FACTOR_LIMIT = 0.6;
+const double FILL_FACTOR_LIMIT  = 0.6;
+const uint   BUSY_VAL           = -1;
+const int    DEFAULT_VAL        = 0;
+const uint   INIT_BWORDS_SIZE   = 16;
+const int    NOTFIND_VAL        = -1;
+const int    AUX_POISON         = -1;
+
+const uint ALIGN_RATION         = 32;
+const uint BUF_INCREASE_RATIO   = 2;
 
 #ifndef CUSTOM_HASH_ENABLE
     #define CUSTOM_HASH_ENABLE 1
 #endif
 
-#ifndef OPTIMIZE_DISABLE
-    #define OPTIMIZE_DISABLE 0
+#ifndef OPTIMIZE_ENABLE 
+    #define OPTIMIZE_ENABLE 0
 #endif
 
 #ifndef RESIZE_ENABLE
@@ -85,7 +93,6 @@ enum class HT_ERR_CODE{
     UNABLE_ALLOC_MEM,
     VERIFY_FAILED
 };
-const list* LST_POISON = (list*)123;
 
 #ifndef LOCATION
     #define LOCATION __FILE__, __FUNCTION__, __LINE__
@@ -97,30 +104,36 @@ const list* LST_POISON = (list*)123;
     #define LOC_PARAMS  char const * file_name, char const * func_name, int const n_line
 #endif
 
-#define HTableInit(obj, size)           _HTableInit((obj), (size), LOCATION)
-#define HTableFind(obj, elem, res)      _HTableFind((obj), (elem), (res), #obj, LOCATION)
-#define HTableInsert(obj, elem)         _HTableInsert((obj), (elem), #obj, LOCATION)
+#define HTableInit(size)                _HTableInit((size), LOCATION)
+#define HTableFind(obj, key, dest)      _HTableFind((obj), (key), (dest), #obj, LOCATION)
+#define HTableInsert(obj, key, val)     _HTableInsert((obj), (key), (val), #obj, LOCATION)
 #define HTableRemove(obj)               _HTableRemove((obj), #obj, LOCATION)
-#define GetSize(obj, dest)              _HTableGetSize(obj, (dest), #obj, LOCATION)
 
 #if CUSTOM_HASH_ENABLE
-    #define HTableInitCustomHash(obj, size, func)     _HTableInitCustomHash((obj), (size), (func), LOCATION)
-#endif
-HT_ERR_CODE     _HTableInit(HTable** obj, const size_t size, LOC_PARAMS);
-#if CUSTOM_HASH_ENABLE
-    HT_ERR_CODE     _HTableInitCustomHash(HTable** obj, const size_t size, uint (*p_func)(const char* str), LOC_PARAMS);
-#endif
+    #define HTableInitCustomHash(size, func) _HTableInitCustomHash((size), (func), LOCATION)
 
-HT_ERR_CODE     _HTableFind(const HTable* obj, const list_T str, uint* is_in_table, META_PARAMS);
-HT_ERR_CODE     _HTableInsert(HTable* obj, const list_T str, META_PARAMS);
+    HTable* _HTableInitCustomHash(const size_t size, uint (*p_func)(const char* str), LOC_PARAMS);
+#endif // CUSTOM_HASH_ENABLE
+
+HTable*         _HTableInit(const size_t size, LOC_PARAMS);
+int             _HTableFind(const HTable* obj, const char* key, int* dest, META_PARAMS);
+HT_ERR_CODE     _HTableInsert(HTable* obj, const char* key, const uint value, META_PARAMS);
 void            _HTableRemove(HTable* obj, META_PARAMS);
-HT_ERR_CODE     _HTableGetSize(HTable* obj, size_t* dest, META_PARAMS);
 
+inline double GetFillFactor(const HTable* obj){
+    return obj->fill_factor;
+}
+inline size_t HTableGetNelems(const HTable* obj){
+    return obj->n_keys;
+}
+inline size_t HTableGetSize(const HTable* obj){
+    return obj->n_lists;
+}
 inline uint IsListEmpty(const HTable* obj, const uint n_list){
-    return (obj->data[n_list] == LST_POISON) ? 1 : 0;
+    return (obj->lists[n_list] == (list*)123) ? 1 : 0;
 }
 inline uint GetListSize(const HTable* obj, const uint n_list){
-    return obj->data[n_list]->size;
+    return obj->lists[n_list]->size;
 }
 
 const uint crc32_table[] =

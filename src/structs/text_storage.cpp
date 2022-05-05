@@ -74,12 +74,10 @@ text_storage* GetStorage(const char *file_name){
 
     size_t n_lines = 0, buf_size = 0, n_words = 0;
 
+    err_code get_meta_res = get_file_metadata(file_name, &n_lines, &buf_size, &n_words);
+    if(get_meta_res == UNABLE_TO_OPEN_FILE) return NULL;
     
-
-    get_file_metadata(file_name, &n_lines, &buf_size, &n_words);
-
     text_storage* storage = text_storage_init(buf_size, n_lines, n_words);
-    
 
     //if(mem_for_storage_result != OK)    assert(0);
 
@@ -246,8 +244,7 @@ err_code get_file_metadata(const char *file_name, size_t *n_lines, size_t *len, 
     *n_words = 0;
 
     FILE *text_file = fopen(file_name, "r");
-
-    assert(text_file != NULL);
+    if(text_file == NULL) return UNABLE_TO_OPEN_FILE;
     
     fseek(text_file, 0, SEEK_END);
 

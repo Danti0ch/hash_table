@@ -47,8 +47,8 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
 
     for n_hash in range(n_hashs_low + n_hashs_high):
 
-        data = list(map(int, lines[n_cur_line + 2].split()))
-        lists_len = list(map(int, lines[n_cur_line + 3].split()))
+        data = list(map(int, lines[n_cur_line + 3].split()))
+        lists_len = list(map(int, lines[n_cur_line + 4].split()))
         axes.append(fig.add_subplot(half_n_hashs, 3, n_hash + 1))
 
         dispersion  = round(float(np.var(lists_len)), 2)
@@ -56,14 +56,9 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
         nonzero_lens = list([lists_len[i] for i in range(len(lists_len)) if lists_len[i] != 0])
         
         descr = 'дисперсия: ' + str(dispersion) + '\n'
-        descr += 'average: '  + str(round(float(sum(nonzero_lens) / len(nonzero_lens)), 1))
-
+        descr += 'average: '  + str(round(float(sum(nonzero_lens) / len(nonzero_lens)), 1)) + '\n'
+        descr += 'количество структур: ' + str(int(lines[n_cur_line + 2]))
         axes[n_hash].set_title(lines[n_cur_line] + descr, loc='left', pad = 1.01)
-        
-        #if(max(data) < 10):
-        #    axes[n_hash].bar([i for i in range(8)], lists_len[:8], color=['yellow'], width=0.03)
-        #    n_cur_line += 4
-
     
         if(n_hash < n_hashs_low):
             axes[n_hash].bar([i for i in range(160)], lists_len[:160],  width=0.52)
@@ -84,7 +79,7 @@ def draw_multiple_bar(n_elems, htable_size, n_hashs_low, n_hashs_high, lines):
             #for thisfrac, thispatch in zip(fracs, patches):
             #    color = plt.cm.viridis(norm(thisfrac))
             #    thispatch.set_facecolor(color)
-        n_cur_line+=4
+        n_cur_line+=5
             
         
     fig.tight_layout()

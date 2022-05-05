@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "logger.h"
+#include "../logger.h"
 
 #define SUCCESSS 1
 
@@ -38,15 +38,17 @@ typedef unsigned int uint;
     #define ENABLE_SORT 0
 #endif
 
-typedef char* list_T;
-//const char T_name[4] = "int";
+typedef struct{
+    const char* p_key;
+    uint        val;
+} list_T;
 
 // значит, что нет указателя на какого-то "соседа"
 const int FREE_MATE            = -1;
 
 // обозначение конца последовательности
 const int POINTER_TO_VOID      = -2;
-const list_T POISON_VAL        =  0;
+const list_T POISON_VAL        =  {NULL, 12};
 
 // значит, пойзон освобожденной памяти
 const int FREE_MEM             =  0xDEADB1AF;
@@ -146,6 +148,7 @@ struct list{
 #define ListRemove(obj, pos)            _ListRemove((obj), (pos), #obj, LOCATION)
 #define ListRemoveAll(obj)              _ListRemoveAll((obj), #obj, LOCATION)
 #define ListFind(obj, val)              _ListFind((obj), (val), #obj, LOCATION)
+#define ListFindAligned(obj, key, len)  _ListFindAligned((obj), (key), (len), #obj, LOCATION)
 
 list*  _ListConstructor(const size_t capacity, LOC_PARAMS);
 
@@ -229,7 +232,9 @@ LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS);
  * @param val 
  * @return uint 
  */
-node* _ListFind(const list* obj, const list_T val, META_PARAMS);
+list_T* _ListFind(const list* obj, const char* key, META_PARAMS);
+
+list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len, META_PARAMS);
 
 LIST_VERIF_CODE VerifyList(const list* obj);
 

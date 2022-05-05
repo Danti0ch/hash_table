@@ -17,6 +17,11 @@ enum USAGE_MODE{
     SPECTRAL_ANALYSIS
 };
 
+const char DEFAULT_DICT_FILE_NAME[]           = "words.txt";
+const uint DEFAULT_HT_SIZE                  = 1019;
+const char DEFAULT_FREQ_STAT_FILE_NAME[]    = "enwik8";
+const uint DEFAULT_TESTS_NUMBER             = 1;
+
 /**
  * @brief функция строит гистограммы распределения длин вторичных структур для хэш таблицы по хэш функциям, которые указаны в фалй hash_funcs
  * 

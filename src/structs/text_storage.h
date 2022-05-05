@@ -45,6 +45,7 @@ enum err_code{
     R,
     MEM_ALLOC_ERROR,
     EMPTY_FILE,
+    UNABLE_TO_OPEN_FILE
 };
 
 const uint MAX_N_WORDS_IN_LINE  = 10000;

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+
 const int INCREASE_RATIO = 1;
 const int REDUCE_RATIO   = 3;
 
@@ -20,28 +21,21 @@ const int REDUCE_MODE    = 0;
 
 //========================================================================================//
 
-#define list_resize(obj, mode) _list_resize((obj), (mode), #obj, LOCATION)
+#define 	list_resize(obj, mode) _list_resize((obj), (mode), #obj, LOCATION)
+#define  	extract_free_ind(obj) _extract_free_ind((obj), #obj, LOCATION)
 
-#define  extract_free_ind(obj) _extract_free_ind((obj), #obj, LOCATION)
-
-LIST_ERR_CODE _list_resize(list* obj, int mode, META_PARAMS);
-
-int _extract_free_ind(list* obj, META_PARAMS);
-
-int node_cmp(const void * node1, const void * node2);
-
+LIST_ERR_CODE 	_list_resize(list* obj, int mode, META_PARAMS);
+int 			_extract_free_ind(list* obj, META_PARAMS);
+int 			node_cmp(const void * node1, const void * node2);
 LIST_VERIF_CODE list_verification(const list* obj);
-
-void print_list(const list* obj);
-
-int get_file_size(const char* name);
+//void		 	print_list(const list* obj);
+//int 			get_file_size(const char* name);
 
 #if ENABLE_SORT
-void list_sort(list* obj);
+void 			list_sort(list* obj);
 #endif
 
-
-
+/*
 
 // 								WOWOWW
 //
@@ -54,9 +48,7 @@ extern "C" int fstrcmp(const char* str1, const char* str2);
 //								WWOWOWOWO
 
 
-
-
-
+*/
 
 /**
  * @brief ищет физический индекс по логическому
@@ -74,6 +66,10 @@ inline int node_in_list(const list* obj, const node* nod){
 	}
 	return 1;
 }
+
+#if OPTIMIZE_ENABLE
+	static char* temp = (char*)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * sizeof(char));
+#endif
 
 // вставляем в любом случае за единицу
 // в любом случае реализую is_sorted, сортировку, сверхбыструю адресацию по логическим адресам
@@ -296,13 +292,7 @@ LIST_ERR_CODE _PushBack(list* obj, const list_T val, META_PARAMS){
 	}
 
 	obj->tail = new_tail_pos;
-    //(*obj)->buffer          = (aligned_alloc*)calloc(ALIGN_RATIO, size * ALIGN_RATIO * sizeof(char));
-
-	//obj->nodes[obj->tail].val = (list_T)aligned_alloc(ALIGN_RATIO, ALIGN_RATIO * sizeof(char));
-	//memset(obj->nodes[obj->tail].val, 0, ALIGN_RATIO);
-
-	//strcpy(obj->nodes[obj->tail].val, val);
-
+	
 	obj->nodes[obj->tail].val = val;
 
 	if(obj->size == 0){
@@ -456,57 +446,69 @@ LIST_ERR_CODE _ListRemoveAll(list* obj, META_PARAMS){
 }
 //----------------------------------------------------------------------------------------//
 
-
-				//"mov rax, 0xFF				\n\t"
-				//"movq xmm0, rax				\n\t"
-				//"vpbroadcastb ymm0, xmm0		\n\t"
-
-				//"vptest ymm2, ymm0				\n\t"
-				//"jc equal						\n\t"
-
-node* _ListFind(const list* obj, const list_T val, META_PARAMS){
+list_T* _ListFind(const list* obj, const char* key, META_PARAMS){
 	
 	LIST_OK(obj)
 
 	node* cur_node = obj->nodes + obj->head;
 
-	uint size = obj->size;
+	for(uint n_node = 0; n_node < obj->size; n_node++){
+	
+		if(strcmp(cur_node[n_node].val.p_key, key) == 0) return &(cur_node[n_node].val);
 
-#if ENABLE_SORT
-	for(uint n_node = 0; n_node < size; n_node++){
-#else
-	for(uint n_node = 0; n_node < obj->size; n_node++, cur_node = obj->nodes + cur_node->next){
-#endif //ENABLE_SORT
-
-		#if OPTIMIZE_DISABLE
-			if(strcmp(cur_node[n_node].val, val) == 0) return cur_node + n_node;
-		#else
-			uint res =0;
-			
-			asm(
-				".intel_syntax noprefix			\n\t"
-				
-				"vmovdqa ymm0, [%1]				\n\t"
-				"vmovdqa ymm1, [%2]				\n\t"
-				"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
-				
-				"vpmovmskb	rax, ymm2			\n\t"
-
-				".att_syntax prefix				\n\t"
-
-				:"=r"(res)
-				:"r"(cur_node[n_node].val), "r"(val)
-				:"ymm0", "ymm1", "ymm2", "rax"
-			);
-			if(res == 0xFFFFFFFF) return cur_node + n_node;
-		#endif	// OPTIMIZE_DISABLE
+		#if ENABLE_SORT == 0
+			cur_node = obj->nodes + cur_node->next;
+		#endif
 	}
 	
-
 	return NULL;
 }
 //----------------------------------------------------------------------------------------//
 
+#if OPTIMIZE_ENABLE
+// strlen(key) <= 32
+list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len, META_PARAMS){
+	
+	LIST_OK(obj)
+
+	node* cur_node = obj->nodes + obj->head;
+
+	memcpy(temp, key, key_len);
+	memset(temp + key_len, 0, ALIGN_RATIO - key_len);
+	
+	for(uint n_node = 0; n_node < obj->size; n_node++){
+
+		uint res = 0;
+		
+		asm(
+			".intel_syntax noprefix			\n\t"
+			
+			"vmovdqa ymm0, [%1]				\n\t"
+			"vmovdqu ymm1, [%2]				\n\t"
+			// vpcmpeqq
+			"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
+
+			"vpmovmskb eax, ymm2			\n\t"
+			"mov %0, eax					\n\t"
+
+			".att_syntax prefix				\n\t"
+
+			:"=r"(res)
+			:"r"(cur_node[n_node].val.p_key), "r"(temp)
+			:"ymm0", "ymm1", "ymm2", "rax"
+		);
+		
+		if(res == 0xFFFFFFFF) return &(cur_node[n_node].val);
+
+		#if ENABLE_SORT == 0
+			cur_node = obj->nodes + cur_node->next;
+		#endif
+	}
+
+	return NULL;
+}
+//----------------------------------------------------------------------------------------//
+#endif // OPTMIZE_ENABLE
 
 LIST_VERIF_CODE VerifyList(const list* obj){
 
@@ -685,7 +687,7 @@ void DumpNodes(const list* obj){
 
 	LOG("nodes = [");
 	for(int n_node = 0; n_node < obj->capacity; n_node++){
-		LOG("(%s, %d, %d), ", obj->nodes[n_node].val, obj->nodes[n_node].next, obj->nodes[n_node].prev);
+		LOG("(%s, %u), ", obj->nodes[n_node].val.p_key, obj->nodes[n_node].val.val);
 	}
 	LOG("]<br>");
 
