@@ -149,14 +149,51 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 }
 ```
 Генеральная функция выполняется уже за 1.57 секунд
-Ускорение программы выросло еще на 6%
+Ускорение программы выросло еще на 5%
 
-### итог
-Программа была ускорена на 36%.
-Было написано 6 строчек на ассемблере, тем самым наша главная метрика равна
+### оптимизация 3
+file:///home/plato/mipt_projs/hash_table/readme_images/opt3_1.png![изображение](https://user-images.githubusercontent.com/89589647/167083112-d259a75e-4668-40af-9339-fe3f96c129e7.png)
+ ListFindAligned является очень весомой функцией.
+ file:///home/plato/mipt_projs/hash_table/readme_images/opt3_2.png![изображение](https://user-images.githubusercontent.com/89589647/167083197-5f541da4-471a-46d5-bf08-b28dd03854e4.png)
+
+При вызове HTableFind и HTableInsert почти всегда происходит вызов ListFindALigned и всегда в начале функций происходит расчёт длины ключа через функцию strlen.
+file:///home/plato/mipt_projs/hash_table/readme_images/opt3_3.png![изображение](https://user-images.githubusercontent.com/89589647/167083284-606d9da0-66df-4210-bdda-63095e9822fe.png)
+Почему бы нам не обьеденить несколько строковых функций в одну, чтобы уменьшить затраты на вызовы функции и грамотней воспользоваться регистрами? Напишем функцию lencpset которая будет возвращать длину ключа и устанавливать строку temp, в которую происходит копирование ключа, нулями(то есть это strlen + memset).
+
+```nasm
+section .text
+
+global lencpset
+
+;===============================================================
+; args:
+;   1) dest   - pointer to dest string to copy key and memset 0 
+;   2) src    - pointer to key string that we need to copy and get len
+; ret: 
+;   rax - src len
+;==============================================================
+lencpset:
+    xor rax, rax
+
+    vpxor ymm0, ymm0
+    vpcmpeqb ymm1, ymm0, [rsi]
+    vpmovmskb edx, ymm1
+
+    bsf eax, edx
+
+    vmovdqu [rdi], ymm0
+
+    ret
 
 ```
-k = 1.36/6 * 1000 = 226
+
+LoadHTable выполняется теперь за 1.54 секунды. Производительность выросла еще на 3%. Это не оптимально, так как мы использовали целую асм функцию для каких-то 3%, но проект является учебным, поэтому оставлю её в моей программе.
+### итог
+Программа была ускорена на 38%.
+Было написано 13 строчек на ассемблере, тем самым наша главная метрика равна
+
+```
+k = 1.36/13 * 1000 = 105
 ```
 
 # Спектральный анализ
