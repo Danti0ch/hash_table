@@ -153,11 +153,15 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 
 ### оптимизация 3
 ![изображение](https://user-images.githubusercontent.com/89589647/167083112-d259a75e-4668-40af-9339-fe3f96c129e7.png)
+
  ListFindAligned является очень весомой функцией.
+ 
  ![изображение](https://user-images.githubusercontent.com/89589647/167083197-5f541da4-471a-46d5-bf08-b28dd03854e4.png)
 
 При вызове HTableFind и HTableInsert почти всегда происходит вызов ListFindALigned и всегда в начале функций происходит расчёт длины ключа через функцию strlen.
+
 ![изображение](https://user-images.githubusercontent.com/89589647/167083284-606d9da0-66df-4210-bdda-63095e9822fe.png)
+
 Почему бы нам не обьеденить несколько строковых функций в одну, чтобы уменьшить затраты на вызовы функции и грамотней воспользоваться регистрами? Напишем функцию lencpset которая будет возвращать длину ключа и устанавливать строку temp, в которую происходит копирование ключа, нулями(то есть это strlen + memset).
 
 ```nasm
