@@ -54,7 +54,7 @@ void LoadHTable(const text_storage* text, const text_storage* dict, const size_t
 ```
 
 Запустим программу на тестовых данных и посмотрим, какую информацию нам выдаст профайлер. Посмотрим нагрузку каждой функции в процентном соотношении от функции LoadHTable:
-file:///home/plato/mipt_projs/hash_table/readme_images/no_opts.png![изображение](https://user-images.githubusercontent.com/89589647/167061970-cf92d01c-f1e3-4fc2-a8d9-d9ef83078ddf.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167061970-cf92d01c-f1e3-4fc2-a8d9-d9ef83078ddf.png)
 
 Также был сделан замер по результатам которого на выполнение функции LoadTable ушло 2.13 секунд(усредненое значение с 32 тестов).
 
@@ -62,7 +62,7 @@ file:///home/plato/mipt_projs/hash_table/readme_images/no_opts.png![изобра
 
 Нетрудно заметить, что функция HTableFind тратит больше всего ресурсов. Посмотрим какой конкретно участок кода потребляет больше всего ресурсов
 
-file:///home/plato/mipt_projs/hash_table/readme_images/ht_find_no_opts_listing.png![изображение](https://user-images.githubusercontent.com/89589647/167070236-e0bc85fe-18ed-4496-b72a-40530bc68a25.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167070236-e0bc85fe-18ed-4496-b72a-40530bc68a25.png)
 Оказывается это хэш функция. Линейное вычисление хэша в совокупности с частым обращением к памяти приводит к тому, что хэш функция тратит много ресурсов. Воспользуемся тем, что строки в таблице ограничены длиной 32 и будем вычислять хэш функцию через simd инструкцию вычисления crc32. Будем считать сразу по 32 бита. Также сделаем эту функцию inline
 
 ```cpp
@@ -96,14 +96,14 @@ inline uint get_hash(const char* str){
 ### оптимизация 2
 
 Посмотрим теперь на вывод профайлера:
-file:///home/plato/mipt_projs/hash_table/readme_images/opt1_1.png![изображение](https://user-images.githubusercontent.com/89589647/167071884-a9358767-284b-4c34-ba34-145ab6cbe905.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167071884-a9358767-284b-4c34-ba34-145ab6cbe905.png)
 
 Перейдем к выводу all calees для самой затратной функции HTableFind
 
-file:///home/plato/mipt_projs/hash_table/readme_images/opt1_2.png![изображение](https://user-images.githubusercontent.com/89589647/167072009-84fa1a27-f82c-4f5e-ba7e-36fd01da1406.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167072009-84fa1a27-f82c-4f5e-ba7e-36fd01da1406.png)
 
 Перейдем к выводу all calees для самой затратной функции ListFind
-file:///home/plato/mipt_projs/hash_table/readme_images/opt1_3.png![изображение](https://user-images.githubusercontent.com/89589647/167072066-ac155b2e-9876-4ba4-92d6-b1b14c4f0b06.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167072066-ac155b2e-9876-4ba4-92d6-b1b14c4f0b06.png)
 
 На strcmp уходит около половины ресурсов при выполнении функции ListFind. Попробуем её прооптимизировать. Опять же воспользуемся тем, что строки в таблице содержатся в ячейках по 32 байта. Воспользуемся inline asm чтобы через ymm регистры выполнять сравнение за O(1), а не за O(n). Напишем для этого отдельную функцию ListFindAligned.
 
@@ -152,12 +152,12 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 Ускорение программы выросло еще на 5%
 
 ### оптимизация 3
-file:///home/plato/mipt_projs/hash_table/readme_images/opt3_1.png![изображение](https://user-images.githubusercontent.com/89589647/167083112-d259a75e-4668-40af-9339-fe3f96c129e7.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167083112-d259a75e-4668-40af-9339-fe3f96c129e7.png)
  ListFindAligned является очень весомой функцией.
- file:///home/plato/mipt_projs/hash_table/readme_images/opt3_2.png![изображение](https://user-images.githubusercontent.com/89589647/167083197-5f541da4-471a-46d5-bf08-b28dd03854e4.png)
+ ![изображение](https://user-images.githubusercontent.com/89589647/167083197-5f541da4-471a-46d5-bf08-b28dd03854e4.png)
 
 При вызове HTableFind и HTableInsert почти всегда происходит вызов ListFindALigned и всегда в начале функций происходит расчёт длины ключа через функцию strlen.
-file:///home/plato/mipt_projs/hash_table/readme_images/opt3_3.png![изображение](https://user-images.githubusercontent.com/89589647/167083284-606d9da0-66df-4210-bdda-63095e9822fe.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167083284-606d9da0-66df-4210-bdda-63095e9822fe.png)
 Почему бы нам не обьеденить несколько строковых функций в одну, чтобы уменьшить затраты на вызовы функции и грамотней воспользоваться регистрами? Напишем функцию lencpset которая будет возвращать длину ключа и устанавливать строку temp, в которую происходит копирование ключа, нулями(то есть это strlen + memset).
 
 ```nasm
@@ -199,6 +199,6 @@ k = 1.36/13 * 1000 = 105
 # Спектральный анализ
 
 Проведём спектральный анализ нашей хэш таблицы на 6 хэш функциях для того, чтобы оценить их эффективность. Для этого зафиксируем размер таблицы.
-file:///home/plato/mipt_projs/hash_table/readme_images/bars.png![изображение](https://user-images.githubusercontent.com/89589647/167064045-517d1c23-2a21-43c1-848c-c4252159a061.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167064045-517d1c23-2a21-43c1-848c-c4252159a061.png)
 
 Нетрудно заметить, что функции возврата константы, ascii первого символа строки и длины строки образуют один больший кластер, вследствие чего хэш функции являются чудовищно плохими. Контрольная сумма уже получше, хотя всё также образует один большой кластер вначале структуры. Rol hash еще лучше, значение дисперсии - 50.14. А победителем само собой является crc32 с дисперсией 6.1.
