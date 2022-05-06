@@ -4,14 +4,7 @@
 ## Оптимизационная часть
 
 ### Оценка ускорения
-Мы будем использовать профайлер callgrind, который показывает в процентах долю затрат каждой функции. Следовательно, если до оптимизации доля была x, а после неё доля стала y, до оптимизации было t единиц затрат программы, а стало t - delt, то имеет место равенство 
-```
-(1-x)*t = (1-y)*(t-delt).
-```
-Из чего получаем 
-```
-t/(t - delt) = (1-y)/(1-x).
-```
+Мы будем использовать профайлер callgrind, который показывает в процентах долю затрат каждой функции. Будем оценивать производительность нагрузочной функции через замер времени(clock_t).
 
 Также мы имеем метрику оценки производительности с учётом количества ассемблерных вставок: 
 ```
@@ -20,29 +13,50 @@ N/M * 1000
 Где N - общее ускорение программы, а M - количество ассемблерых строк.
 
 ### Оптимизации
-Оценку производительности хэш таблицы будем проводить с помощью профайлера callgrind. Составим сценарий, при котором у нас будет вставка уникальных слов из текста в таблицу, а после - поиск каждого слова исходного текста в таблице. То есть нагрузочная функция будет иметь следующий вид:
+В качестве словаря возьму файл words.txt, а в качестве текста - enwik8. Начальный размер хэш таблицы на всех тестах будет 1019.
+
+
+Оценку производительности хэш таблицы будем проводить с помощью профайлера callgrind. Составим сценарий, при котором у нас происходит замер на частоту нахождения слов из словаря в тексте. То есть вначале будет вставка уникальных слов из словаря в таблицу, а после - поиск слов из текста. 
+Нагрузочная функция будет иметь следующий вид:
 ```cpp
 
-void UseHtable(const text_storage* text, const text_storage* unique_text, const size_t hash_size){
+void LoadHTable(const text_storage* text, const text_storage* dict, const size_t htable_size){
     
-    Htabl* htable = HTableInit(hash_size, HashCRC32);
+    assert(text != NULL);
+    assert(dict != NULL);
+
+    HTable* htable = HTableInit(htable_size);
     assert(htable != NULL);
 
-    for(uint n_elem = 0; n_elem < unique_text->n_words; n_elem++){
-        HTableInsert(htable, unique_text->p_words[n_elem].pt);
+    for(uint n_word = 0; n_word < dict->n_words; n_word++){
+        if(n_word % 100000  == 0) printf("pack %u loaded\n", n_word);
+        HTableInsert(htable, GetWord(dict, n_word), 0);
     }
 
     for(uint n_word = 0; n_word < text->n_words; n_word++){
-        HTableFind(htable, text->p_words[n_word].pt);
+
+        int cur_freq = 0;
+        const char* cur_word = GetWord(text, n_word);
+
+        int isfind = HTableFind(htable, cur_word, &cur_freq);
+        if(isfind){
+            HTableInsert(htable, cur_word, cur_freq + 1);
+        }
+
+        if(n_word % 1000000  == 0){
+            printf("%u pack found\n", n_word);
+        }
     }
 
+    HTableRemove(htable);
     return;
 }
-
 ```
 
-Запустим программу на тестовых данных и посмотрим, какую информацию нам выдаст профайлер. Посмотрим нагрузку каждой функции в процентном соотношении от функции UseHTable:
+Запустим программу на тестовых данных и посмотрим, какую информацию нам выдаст профайлер. Посмотрим нагрузку каждой функции в процентном соотношении от функции LoadHTable:
 ![изображение](https://user-images.githubusercontent.com/89589647/164607898-6ec4ef13-7ab9-40e1-ae57-782bb3ca49ed.png)
+
+Также был сделан замер по результатам которого на выполнение функции LoadTable ушло 2.13 секунд(усредненое значение с 32 тестов).
 
 Нетрудно заметить, что самыми прожорливыми являются функции get_hash, HTableFind, ListFind, __strcmp_avx2, verify htable.
 
