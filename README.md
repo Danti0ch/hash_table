@@ -148,54 +148,15 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 	return NULL;
 }
 ```
-
-Ускорение программы еще на 
-### оптимизация 3
-Теперь все затраты идут на выполнение функции ListFind. Посмотрим, что же с ней не так. Для этого глянем на листинг.
-
-![изображение](https://user-images.githubusercontent.com/89589647/165023932-0835c8e3-e60c-45b0-91c7-eb7b960ed626.png)
-
-Посмотрим на асемблерный листинг 510-511 строчек.
-
-![изображение](https://user-images.githubusercontent.com/89589647/165024012-c7b085bc-7421-47e3-b922-a068cba354c7.png)
-
-Перепишем часть с циклом через ассемблерную вставку, чтобы уменьшить общее количество операций и также операций обращения к памяти. (Учитывая что мы писали fsctrcmp и знаем какие регистры там используются)
-
-```nasm
-.intel_syntax noprefix
-mov rcx,  0			
-mov ebx, size			
-mov rsi, val		
-mov r9,  cur_node		
-cmp_loop:				
-mov rdi, [r9]			
-push rdi				
-push rsi				
-call fstrcmp			
-pop rsi				
-pop rdi				
-cmp rax, 0				
-je found_label			
-add r9, 0x10			
-inc rcx				
-cmp ecx, ebx			
-jne cmp_loop			
-jmp found_label		
-found_label:			
-mov res, rax			
-.att_syntax prefix		
-```
-
-![изображение](https://user-images.githubusercontent.com/89589647/165030621-0d22b4a5-ae43-4fc7-b388-e3902fa300bd.png)
-
-Программа стала быстрее еще на 30%
+Генеральная функция выполняется уже за 1.57 секунд
+Ускорение программы выросло еще на 6%
 
 ### итог
-Программа была ускорена в 2.4 раза.
-Было написано 55 строчек на ассемблере, тем самым наша главная метрика равна
+Программа была ускорена на 36%.
+Было написано 6 строчек на ассемблере, тем самым наша главная метрика равна
 
 ```
-k = 2.4/55 * 1000 = 43.6
+k = 1.36/6 * 1000 = 226
 ```
 
 # Спектральный анализ
