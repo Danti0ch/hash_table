@@ -58,39 +58,98 @@ file:///home/plato/mipt_projs/hash_table/readme_images/no_opts.png![изобра
 
 Также был сделан замер по результатам которого на выполнение функции LoadTable ушло 2.13 секунд(усредненое значение с 32 тестов).
 
-
 ### оптимизация 1
-Начнём с функции get_hash. В ней по строке вычисляется хэш по алгоритму crc32.
+
+Нетрудно заметить, что функция HTableFind тратит больше всего ресурсов. Посмотрим какой конкретно участок кода потребляет больше всего ресурсов
+
+file:///home/plato/mipt_projs/hash_table/readme_images/ht_find_no_opts_listing.png![изображение](https://user-images.githubusercontent.com/89589647/167070236-e0bc85fe-18ed-4496-b72a-40530bc68a25.png)
+Оказывается это хэш функция. Линейное вычисление хэша в совокупности с частым обращением к памяти приводит к тому, что хэш функция тратит много ресурсов. Воспользуемся тем, что строки в таблице ограничены длиной 32 и будем вычислять хэш функцию через simd инструкцию вычисления crc32. Будем считать сразу по 32 бита. Также сделаем эту функцию inline
 
 ```cpp
-static uint get_hash(const char* str){
+inline uint get_hash(const char* str){
     
     assert(str != NULL);
-
+    
     uint hash = 0xFFFFFFFF;
 
-    for(uint i = 0; str[i] != 0; i++){
+    #if OPTIMIZE_ENABLE
 
-        hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
-    }
+        for(uint ind = 0; ind < 8; ind += 4){
+            uint hash_val = *((uint*)(str + ind));
+            if(hash_val == 0) break;
+            hash = _mm_crc32_u32(hash, hash_val);
+        }
+    #else
+        for(uint i = 0; str[i] != 0; i++){
 
+            hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
+        }
+    #endif  // OPTIMIZE_DISABLE
+    
     return hash;
 }
+
 ```
-Так как вычисления хэша на каждой итерации довольно трудоёмкий процесс в котором происходит обращение к памяти и несколько битовых операций, то имеет смысл немного векторизовать вычисления.
-Воспользуемся simd функциями, конкретнее встроенной функцией, которая считает хэш по алгоритму crc32. Будем считать хэш не побайтово, а порциями по 4 байта.
 
-![изображение](https://user-images.githubusercontent.com/89589647/164611592-27483d94-e5de-4bf5-9f3d-830e6b310505.png)
-
-Ничего себе! Теперь получение хэша будет происходить почти мгновенно. Наша программа была ускорена на 50%.
+Теперь на выполнение LoadHTable уходит 1.63 секунд. Ускорение на 30%.
 
 ### оптимизация 2
 
-Следующим шагом будет оптимизация функции strcmp. Упростим функцию __strcmp_avx2 и полностью перепишем её на ассемблере 
-![изображение](https://user-images.githubusercontent.com/89589647/164616008-1e01dd14-843a-4eb9-a92b-0550b60caf17.png)
+Посмотрим теперь на вывод профайлера:
+file:///home/plato/mipt_projs/hash_table/readme_images/opt1_1.png![изображение](https://user-images.githubusercontent.com/89589647/167071884-a9358767-284b-4c34-ba34-145ab6cbe905.png)
 
-Программа ускорилась уже на 110%.
+Перейдем к выводу all calees для самой затратной функции HTableFind
 
+file:///home/plato/mipt_projs/hash_table/readme_images/opt1_2.png![изображение](https://user-images.githubusercontent.com/89589647/167072009-84fa1a27-f82c-4f5e-ba7e-36fd01da1406.png)
+
+Перейдем к выводу all calees для самой затратной функции ListFind
+file:///home/plato/mipt_projs/hash_table/readme_images/opt1_3.png![изображение](https://user-images.githubusercontent.com/89589647/167072066-ac155b2e-9876-4ba4-92d6-b1b14c4f0b06.png)
+
+На strcmp уходит около половины ресурсов при выполнении функции ListFind. Попробуем её прооптимизировать. Опять же воспользуемся тем, что строки в таблице содержатся в ячейках по 32 байта. Воспользуемся inline asm чтобы через ymm регистры выполнять сравнение за O(1), а не за O(n). Напишем для этого отдельную функцию ListFindAligned.
+
+```cpp
+list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len, META_PARAMS){
+	
+	LIST_OK(obj)
+
+	node* cur_node = obj->nodes + obj->head;
+
+	memcpy(temp, key, key_len);
+	memset(temp + key_len, 0, ALIGN_RATIO - key_len);
+
+	for(uint n_node = 0; n_node < obj->size; n_node++){
+
+		uint res = 0;
+		
+		asm(
+			".intel_syntax noprefix			\n\t"
+			
+			"vmovdqa ymm0, [%1]				\n\t"
+			"vmovdqu ymm1, [%2]				\n\t"
+			"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
+
+			"vpmovmskb eax, ymm2			\n\t"
+			"mov %0, eax					\n\t"
+
+			".att_syntax prefix				\n\t"
+
+			:"=r"(res)
+			:"r"(cur_node[n_node].val.p_key), "r"(temp)
+			:"ymm0", "ymm1", "ymm2", "rax"
+		);
+		
+		if(res == 0xFFFFFFFF) return &(cur_node[n_node].val);
+
+		#if ENABLE_SORT == 0
+			cur_node = obj->nodes + cur_node->next;
+		#endif
+	}
+
+	return NULL;
+}
+```
+
+Ускорение программы еще на 
 ### оптимизация 3
 Теперь все затраты идут на выполнение функции ListFind. Посмотрим, что же с ней не так. Для этого глянем на листинг.
 
