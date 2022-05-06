@@ -56,10 +56,8 @@ void LoadHTable(const text_storage* text, const text_storage* dict, const size_t
 Запустим программу на тестовых данных и посмотрим, какую информацию нам выдаст профайлер. Посмотрим нагрузку каждой функции в процентном соотношении от функции LoadHTable:
 file:///home/plato/mipt_projs/hash_table/readme_images/no_opts.png![изображение](https://user-images.githubusercontent.com/89589647/167061970-cf92d01c-f1e3-4fc2-a8d9-d9ef83078ddf.png)
 
-
 Также был сделан замер по результатам которого на выполнение функции LoadTable ушло 2.13 секунд(усредненое значение с 32 тестов).
 
-Нетрудно заметить, что самыми прожорливыми являются функции get_hash, HTableFind, ListFind, __strcmp_avx2, verify htable.
 
 ### оптимизация 1
 Начнём с функции get_hash. В ней по строке вычисляется хэш по алгоритму crc32.
