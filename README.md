@@ -328,6 +328,72 @@ k = 1.43/6 * 1000 = 238
 -->
 # Спектральный анализ
 
+Рассмотрим 6 хэш-функций
+
+```cpp
+uint HashReturn0(const char* str){
+
+    return 1;
+}
+
+uint  HashFirstChar(const char* str){
+
+    return (uint)(str[0]);
+}
+
+uint  HashFirstChar(const char* str){
+
+    return (uint)(str[0]);
+}
+
+uint HashStrLen(const char* str){
+    
+    uint len = 0;
+    for(; str[len] != 0 && len < MAX_STR_LEN; len++){
+        ;
+    }
+
+    return len;
+}
+
+uint HashCheckSum(const char* str){
+
+    uint sum = 0;
+
+    for(uint i = 0; str[i] != 0 && i < MAX_STR_LEN; i++){
+        sum += (uint)str[i];
+    }
+
+    return sum;
+}
+
+uint HashBRol(const char* str){
+
+    uint hash = str[0];
+
+    for(uint i = 1; str[i] != 0 && i < MAX_STR_LEN; i++){
+        hash = (hash >> 1) | (hash << (sizeof(hash) * BITS_IN_BYTE - 1));
+
+        hash ^= str[i];
+    }
+
+    return hash;
+}
+
+uint HashCRC32(const char* str){
+
+    assert(str != NULL);
+
+    uint hash = 0xFFFFFFFF;
+
+    for(uint i = 0; i < MAX_STR_LEN / 4 && str[i] != 0; i++){
+
+        hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
+    }
+
+    return hash;
+}
+```
 Проведём спектральный анализ нашей хэш таблицы на 6 хэш функциях для того, чтобы оценить их эффективность. Для этого зафиксируем размер таблицы.
 ![изображение](https://user-images.githubusercontent.com/89589647/167064045-517d1c23-2a21-43c1-848c-c4252159a061.png)
 
