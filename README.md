@@ -71,7 +71,7 @@ inline uint get_hash(const char* str){
 
 ```
 
-Теперь на выполнение LoadHTable уходит 3907377045 тактов. Ускорение на 16%.
+Теперь на выполнение LoadHTable уходит 3907377045 тактов. Ускорение на 18%.
 
 ### оптимизация 2
 
@@ -180,7 +180,7 @@ list_T* _ListFindAlignedByAligned(const list* obj, const char* key, META_PARAMS)
 В дальнейшем мы будем оптимизировать именно эти функции
 
 Генеральная функция выполняется уже за 3186492375 тактов
-Ускорение программы еще на 15%
+Ускорение программы еще на 27%
 
 ### оптимизация 3
 ![изображение](https://user-images.githubusercontent.com/89589647/167433242-b67f5e11-d6cd-460f-9ec4-29977df72bdc.png)
@@ -213,10 +213,69 @@ list_T* _ListFindAlignedByAligned(const list* obj, const char* key, META_PARAMS)
 80475  строк большей длины
 ```
 
-Тем самым можем избавиться от выполнения инструкций, связанных с циклом, просто выполнив код тела цикла один раз еще до самого цикла
-Рассмотрим функцию HTableInsertAligned
+Тем самым можем избавиться от выполнения инструкций, связанных с циклом, просто выполнив код тела цикла один раз еще до самого цикла.
+
+```cpp
+#define fast_strcmp(n_node)							\
+										\
+asm(										\
+			".intel_syntax noprefix			\n\t"		\
+										\
+			"vmovdqa ymm0, [%1]				\n\t"	\
+			"vmovdqa ymm1, [%2]				\n\t"	\
+										\
+			"vpcmpeqb ymm2, ymm0, ymm1		\n\t"		\
+										\
+			"vpmovmskb eax, ymm2			\n\t"		\
+			"mov %0, eax					\n\t"	\
+										\
+			".att_syntax prefix				\n\t"	\
+										\
+			:"=r"(res)						\
+			:"r"(obj->nodes[0].val.p_key), "r"(key)			\
+			:"ymm0", "ymm1", "ymm2", "rax"				\
+		);
+
+list_T* _ListFindAlignedByAligned(const list* obj, const char* key, META_PARAMS){
+	
+	LIST_OK(obj)
+	const uint size = obj->size;
+
+	uint res = 0;
+
+	fast_strcmp(0)
+			
+	if(res == 0xFFFFFFFF) return &(obj->nodes[0].val);
+	if(size == 1) return NULL;
+
+	node* cur_node = obj->nodes;
+
+	for(uint n_node = 1; n_node < size; n_node++){
+		
+		fast_strcmp(n_node)
+		if(res == 0xFFFFFFFF) return &(cur_node[n_node].val);
+	}
+
+	return NULL;
+}
+```
+
+Генеральная функция выполняется уже за 3131261610 тактов
+Увеличение производительности на 3%
+
+### итог
+Дальнейшие оптимизации не требуются. Во первых последняя оптимизация дала нам немного - 1.5%. Необходимые примитивные инструкции убрать нельзя, а самые затратные участки кода уже были оптимизированы.
+
+Тем самым мы получили ускорение:
+```
+4644596385 -> 3131261610 тактов
+Или ускорение на 48%(в 1.483 раз)
+```
+
 ### доп оптимизация
- ListFindAligned является очень весомой функцией.
+ Эта часть не относится к задаче, является просто оптимизации, убранной изза ненадобности в юзкейсе.
+ 
+ Займемся оптимизацией функцией поиска и вставки невыровненного ключа.
  
 ![изображение](https://user-images.githubusercontent.com/89589647/167197403-76bcce65-4b15-4f9b-b2cb-0f6be0ce3280.png)
 
