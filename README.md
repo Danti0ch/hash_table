@@ -328,24 +328,26 @@ k = 1.43/6 * 1000 = 238
 -->
 # Спектральный анализ
 
-Рассмотрим 6 хэш-функций
+Рассмотрим 6 хэш-функций.
 
+1. Функция, которая всегда возвращает константу
 ```cpp
 uint HashReturn0(const char* str){
 
-    return 1;
+    return 0;
 }
+```
 
+2. Функция возвращает ascii первого символа строки
+```cpp
 uint  HashFirstChar(const char* str){
 
     return (uint)(str[0]);
 }
+```
 
-uint  HashFirstChar(const char* str){
-
-    return (uint)(str[0]);
-}
-
+3. Функция возвращает длину строки
+```cpp
 uint HashStrLen(const char* str){
     
     uint len = 0;
@@ -355,7 +357,10 @@ uint HashStrLen(const char* str){
 
     return len;
 }
+```
 
+4. Функция возвращает сумму значений символов строки.
+```cpp
 uint HashCheckSum(const char* str){
 
     uint sum = 0;
@@ -366,7 +371,10 @@ uint HashCheckSum(const char* str){
 
     return sum;
 }
+```
 
+5. Rol Hash
+```cpp
 uint HashBRol(const char* str){
 
     uint hash = str[0];
@@ -379,10 +387,11 @@ uint HashBRol(const char* str){
 
     return hash;
 }
+```
 
+6. CRC32
+```cpp
 uint HashCRC32(const char* str){
-
-    assert(str != NULL);
 
     uint hash = 0xFFFFFFFF;
 
@@ -394,6 +403,7 @@ uint HashCRC32(const char* str){
     return hash;
 }
 ```
+
 Проведём спектральный анализ нашей хэш таблицы на 6 хэш функциях для того, чтобы оценить их эффективность. Для этого зафиксируем размер таблицы.
 ![изображение](https://user-images.githubusercontent.com/89589647/167064045-517d1c23-2a21-43c1-848c-c4252159a061.png)
 
