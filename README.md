@@ -17,6 +17,7 @@ N/M * 1000
 Идея юзкейса:  предварительная загрузка данных в таблицу, а потом операции нахождения и обновления элемента таблицы. Будем использовать таблицу так: предположим, что у нас есть очень большой файл A, который полностью поместиться в таблицу не сможет. Возьмем файл-словарь B, загрузим из него слова в таблицу и будем считать частоту появления слов из словаря B в большом файле A. То есть слова, которые присутствует в файле A, и отстутствуют в файле B добавляться в таблицу не будут. Будем оценивать производительность стадии подсчета и обновления частоты. Так как обновление не будет приводить к добавлению элементов, то не будут затрагиваться части HTableInsert, которых бы не было в HTableFind.
 
 В качестве словаря B возьмем файл words.txt, а в качестве файла A - файл enwik8.
+
 Размер хэш таблицы - 1000000
 
 Оценку производительности хэш таблицы будем проводить с помощью профайлера callgrind и здравого смысла.
@@ -24,9 +25,6 @@ N/M * 1000
 Нагрузочная функция будет иметь следующий вид:
 ```cpp
 void LoadHTable(HTable* htable, const text_storage* text, const text_storage* dict, const size_t htable_size){
-    
-    assert(text != NULL);
-    assert(dict != NULL);
 
     int cur_freq = 0;
     
@@ -45,69 +43,56 @@ void LoadHTable(HTable* htable, const text_storage* text, const text_storage* di
 ```
 
 Запустим программу на тестовых данных и посмотрим, какую информацию нам выдаст профайлер. Посмотрим нагрузку каждой функции в процентном соотношении от функции LoadHTable:
-![изображение](https://user-images.githubusercontent.com/89589647/167180295-e804d1b5-227b-4dea-9874-b7107c31176f.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167430890-67870e2f-cecf-4ea7-8983-bff3e2552080.png)
 
-Также был сделан замер по результатам которого на выполнение функции LoadHTable ушло 5181077950 тактов процессора(усредненое значение с 20 тестов).
+Также был сделан замер по результатам которого на выполнение функции LoadHTable ушло 4644596385 тактов процессора(медиана из 64 тестов).
 
 ### оптимизация 1
 
 Нетрудно заметить, что функция HTableFind тратит больше всего ресурсов. Посмотрим какой конкретно участок кода потребляет больше всего ресурсов
 
-![изображение](https://user-images.githubusercontent.com/89589647/167182267-806303dc-679a-4011-bc89-af72cd05a793.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167431066-d1793b6a-6220-4f12-a9e6-fc3f3c3475e4.png)
 
-Оказывается это хэш функция. Заметим, также, что хэш функция и функция верификация хэш таблицы являются inline. Линейное вычисление хэша в совокупности с частым обращением к памяти приводит к тому, что хэш функция тратит много ресурсов. Воспользуемся тем, что строки в таблице ограничены длиной 32 и будем вычислять хэш функцию через simd инструкцию вычисления crc32. Будем считать сразу по 32 бита. Также сделаем эту функцию inline
+Оказывается это хэш функция. Заметим, также, что хэш функция и функция верификация хэш таблицы являются inline. Линейное вычисление хэша в совокупности с частым обращением к памяти приводит к тому, что хэш функция тратит много ресурсов. Воспользуемся тем, что строки в таблице ограничены длиной 32 и будем вычислять хэш функцию через simd инструкцию вычисления crc32. Будем считать сразу по 32 бита.
 
 ```cpp
 inline uint get_hash(const char* str){
-    
-    assert(str != NULL);
-    
+
     uint hash = 0xFFFFFFFF;
 
-    #if OPTIMIZE_ENABLE
-
-        for(uint ind = 0; ind < 8; ind += 4){
-            uint hash_val = *((uint*)(str + ind));
-            if(hash_val == 0) break;
-            hash = _mm_crc32_u32(hash, hash_val);
-        }
-    #else
-        for(uint i = 0; str[i] != 0; i++){
-
-            hash = (hash << 8) ^ crc32_table[((hash >> 24) ^ str[i]) & 0xFF];
-        }
-    #endif  // OPTIMIZE_DISABLE
+	for(uint ind = 0; ind < 8; ind += 4){
+	    uint hash_val = *((uint*)(str + ind));
+	    if(hash_val == 0) break;
+	    hash = _mm_crc32_u32(hash, hash_val);
+	}
     
     return hash;
 }
 
 ```
 
-Теперь на выполнение LoadHTable уходит 4139510089 тактов. Ускорение на 25%.
+Теперь на выполнение LoadHTable уходит 3907377045 тактов. Ускорение на 16%.
 
 ### оптимизация 2
 
 Посмотрим теперь на вывод профайлера:
-![изображение](https://user-images.githubusercontent.com/89589647/167185385-33f3af20-585e-4b7b-87bf-0253258ca923.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167431469-59f429b9-a0e2-4640-af15-c1affd4c7bde.png)
 
-Перейдем к выводу all calees для самой затратной функции HTableFind
+ListFind - функция, которая употребляется в функции вставки и поиска и суммарно тратит около 39% всех затрат. Посмотрим на её листинг
 
-![изображение](https://user-images.githubusercontent.com/89589647/167185604-8069a035-dffb-4470-be8b-dc8029ada55a.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167431791-f6443d2c-8b18-4281-80cf-ddee7c1b51a4.png)
 
-ListFind - самая затратная функция, посмотрим на ее листинг.
-![изображение](https://user-images.githubusercontent.com/89589647/167185999-76d43044-069b-4266-8549-ff53054354c5.png)
-
-На strcmp уходит около половины ресурсов при выполнении функции ListFind. Попробуем её прооптимизировать. Опять же воспользуемся тем, что строки в таблице содержатся в ячейках по 32 байта. Воспользуемся inline asm чтобы через ymm регистры выполнять сравнение за O(1), а не за O(n). Напишем для этого отдельную функцию ListFindAligned.
+На strcmp уходит около половины ресурсов при выполнении функции ListFind. Попробуем её прооптимизировать. Опять же воспользуемся тем, что строки в таблице содержатся в ячейках по 32 байта. Воспользуемся inline asm чтобы через ymm регистры выполнять сравнение за O(const), а не за O(n). Напишем для этого отдельную функцию ListFindAligned.
 
 ```cpp
-list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len, META_PARAMS){
+list_T* _ListFindAligned(const list* obj, char* temp, const char* key, const size_t key_len, META_PARAMS){
 	
 	LIST_OK(obj)
 
 	node* cur_node = obj->nodes + obj->head;
-
+	
+	memset(temp, 0, ALIGN_RATIO);
 	memcpy(temp, key, key_len);
-	memset(temp + key_len, 0, ALIGN_RATIO - key_len);
 
 	for(uint n_node = 0; n_node < obj->size; n_node++){
 
@@ -117,7 +102,8 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 			".intel_syntax noprefix			\n\t"
 			
 			"vmovdqa ymm0, [%1]				\n\t"
-			"vmovdqu ymm1, [%2]				\n\t"
+			"vmovdqa ymm1, [%2]				\n\t"
+			// vpcmpeqq
 			"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
 
 			"vpmovmskb eax, ymm2			\n\t"
@@ -139,14 +125,96 @@ list_T* _ListFindAligned(const list* obj, const char* key, const size_t key_len,
 
 	return NULL;
 }
+}
 ```
-Генеральная функция выполняется уже за 3939212763 тактов
-Ускорение программы выросло еще на 6%
+
+Также предоставим пользователю возможность передавать в функцию уже выровненные строки, что избавит нас от нужды делать копирование в выравненное временное хранилище. Для этого была реализована функция HTableFindAligned, HTableInsertAligned и ListFindAlignedByAligned.
+
+```cpp
+
+list_T* _ListFindAlignedByAligned(const list* obj, const char* key, META_PARAMS){
+	
+	LIST_OK(obj)
+	const uint size = obj->size;
+
+	uint res = 0;
+
+	#if ENABLE_SORT
+		node* cur_node = obj->nodes;
+	#else
+		node* cur_node = obj->nodes + obj->head;
+	#endif // ENABLE_SORT
+
+	for(uint n_node = 0; n_node < size; n_node++){
+		
+		asm(
+			".intel_syntax noprefix			\n\t"
+			
+			"vmovdqa ymm0, [%1]				\n\t"
+			"vmovdqa ymm1, [%2]				\n\t"
+			// vpcmpeqq
+			"vpcmpeqb ymm2, ymm0, ymm1		\n\t"
+
+			"vpmovmskb eax, ymm2			\n\t"
+			"mov %0, eax					\n\t"
+
+			".att_syntax prefix				\n\t"
+
+			:"=r"(res)
+			:"r"(cur_node[n_node].val.p_key), "r"(key)
+			:"ymm0", "ymm1", "ymm2", "rax"
+		);
+		
+		if(res == 0xFFFFFFFF) return &(cur_node[n_node].val);
+
+		#if ENABLE_SORT == 0
+			cur_node = obj->nodes + cur_node->next;
+		#endif
+	}
+
+	return NULL;
+}
+
+```
+
+В дальнейшем мы будем оптимизировать именно эти функции
+
+Генеральная функция выполняется уже за 3186492375 тактов
+Ускорение программы еще на 15%
 
 ### оптимизация 3
-![изображение](https://user-images.githubusercontent.com/89589647/167197060-9498ae78-88af-43d6-bcb8-f6e24b2d1d6f.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167433242-b67f5e11-d6cd-460f-9ec4-29977df72bdc.png)
 
+Посмотрим, могут ли быть еще какие-то оптимизации. Рассмотрим функцию HTableFindAligned
 
+![изображение](https://user-images.githubusercontent.com/89589647/167433440-15b68fc8-ea17-4d2a-8106-22960a626b18.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167433494-6b61638a-def5-46cc-9c3c-920fe73a5c37.png)
+
+Исключая функцию ListFindAlignedByAligned все операции в функции являются примитивными и необходимыми, незатратными или уже оптимизированными.
+
+![изображение](https://user-images.githubusercontent.com/89589647/167433717-e9d7c10e-5b54-4f3f-8512-f0acfa94577d.png)
+![изображение](https://user-images.githubusercontent.com/89589647/167433739-f8703934-7038-4fcc-a53f-4b11113d5be8.png)
+
+С ней всё то-же самое.
+
+Рассмотрим теперь ListFindAlignedByAligned
+
+![изображение](https://user-images.githubusercontent.com/89589647/167433860-9969e13d-ebb2-4816-bc59-07396de472ca.png)
+
+Посмотреть на асм листинг нашей функции. Цикл тратит подозрительно много ресурсов, чтобы посмотреть в чем дело, посмотрим на асм листинг нашей функции.
+
+![изображение](https://user-images.githubusercontent.com/89589647/167434072-c7040b1e-3c2d-4ab7-83f3-790860fc77b1.png)
+
+Операции, связанные с циклом указанны в строках 40194B-401967. В них происходит проверка размера списка, Расчёт адреса последнего элемента в списке и операции сравнения, увеличения счётчика. Заметим, что наша хэш функция довольно хорошая, около 80% всех списков ненулевой длины - единичной длины.
+
+Конкретно:
+```
+292233 строк единичной длины
+80475  строк большей длины
+```
+
+Тем самым можем избавиться от выполнения инструкций, связанных с циклом, просто выполнив код тела цикла один раз еще до самого цикла
+Рассмотрим функцию HTableInsertAligned
 ### доп оптимизация
  ListFindAligned является очень весомой функцией.
  
