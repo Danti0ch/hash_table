@@ -349,13 +349,8 @@ uint  HashFirstChar(const char* str){
 3. Функция возвращает длину строки
 ```cpp
 uint HashStrLen(const char* str){
-    
-    uint len = 0;
-    for(; str[len] != 0 && len < MAX_STR_LEN; len++){
-        ;
-    }
 
-    return len;
+    return strlen(str);
 }
 ```
 
